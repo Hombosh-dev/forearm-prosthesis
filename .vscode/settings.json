@@ -1,0 +1,32 @@
+{
+    "files.associations": {
+        "*.h": "c"
+    },
+    "C_Cpp.formatting": "clangFormat",
+    "C_Cpp.clang_format_fallbackStyle": "file",
+    "editor.defaultFormatter": "ms-vscode.cpptools",
+
+    "[c]": {
+        "editor.formatOnSave": true
+    },
+    "[cpp]": {
+        "editor.formatOnSave": true
+    },
+
+    "C_Cpp.codeAnalysis.clangTidy.enabled": false
+    
+}
+
+{
+  // Use clang-format for C/C++
+  "C_Cpp.formatting": "clangFormat",
+  "C_Cpp.clang_format_fallbackStyle": "file",
+  "editor.defaultFormatter": "ms-vscode.cpptools",
+  // Auto-format on save for C/C++
+  "[c]":  { "editor.formatOnSave": true },
+  "[cpp]":{ "editor.formatOnSave": true },
+  "files.associations": { "*.h": "c" },
+
+  // If clang-format.exe not on PATH, point to it explicitly:
+  "C_Cpp.clang_format_path": "C:\\Program Files\\LLVM\\bin\\clang-format.exe"
+}
