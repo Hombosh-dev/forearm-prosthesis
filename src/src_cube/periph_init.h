@@ -6,8 +6,8 @@
 extern ADC_HandleTypeDef hadc1;
 extern UART_HandleTypeDef huart1;
 extern DMA_HandleTypeDef hdma_adc1;
-// extern DMA_HandleTypeDef hdma_tim2_ch2_ch4;
-// extern TIM_HandleTypeDef htim2;
+extern DMA_HandleTypeDef hdma_tim2_ch2_ch4;
+extern TIM_HandleTypeDef htim2;
 
 void PeriphCommonClock_Config(void);
 void SystemClock_Config(void);

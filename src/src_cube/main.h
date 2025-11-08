@@ -10,7 +10,7 @@ extern "C"
 #include "stm32f4xx_hal.h"
 
     const uint16_t SAMPLES = 1024; // SR = 400kHz
-    const uint16_t ADC_CHANNELS = 1; //4;
+    const uint16_t ADC_CHANNELS = 4;
 
     void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
