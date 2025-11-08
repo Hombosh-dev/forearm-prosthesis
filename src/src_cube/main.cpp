@@ -30,17 +30,17 @@ int main(void)
     {
         if (data_rdy_f)
         {
-            printf("PLOT_DATA:");
+            // printf("PLOT_DATA:");
             for (int i = 0; i < SAMPLES; i += 8) 
             {
-                printf("1 %d, 2 %d, 3 %d, 4 %d,\n",
-                // printf("%d,%d,%d,%d\r\n",
+                // printf("1 %d, 2 %d, 3 %d, 4 %d,\n",
+                printf(">CH1:%d,CH2:%d,CH3:%d,CH4:%d\r\n",
                     adc_buffer[i * ADC_CHANNELS + 0],  // Channel 0 (PA0)
                     adc_buffer[i * ADC_CHANNELS + 1],  // Channel 1 (PA1)
                     adc_buffer[i * ADC_CHANNELS + 2],  // Channel 2 (PA2)
                     adc_buffer[i * ADC_CHANNELS + 3]); // Channel 3 (PA3)
                 
-                HAL_Delay(10);
+                // HAL_Delay(10);
             }
             // printf("END\r\n");
             
@@ -68,7 +68,7 @@ int main(void)
             data_rdy_f = false;
             HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer, ADC_CHANNELS * SAMPLES);
         }
-        HAL_Delay(5);
+        HAL_Delay(10);
     }
 }
 
