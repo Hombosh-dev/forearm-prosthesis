@@ -8,6 +8,7 @@ extern UART_HandleTypeDef huart1;
 extern DMA_HandleTypeDef hdma_adc1;
 extern DMA_HandleTypeDef hdma_tim2_ch2_ch4;
 extern TIM_HandleTypeDef htim2;
+extern I2C_HandleTypeDef hi2c1;
 
 void PeriphCommonClock_Config(void);
 void SystemClock_Config(void);
@@ -15,6 +16,6 @@ void MX_GPIO_Init(void);
 void MX_ADC1_Init(void);
 void MX_DMA_Init(void);
 void MX_USART1_UART_Init(void);
-
+void MX_I2C1_Init(void);
 void MX_TIM2_Init(void);
 #endif // PERIPH_INIT_H
