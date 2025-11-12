@@ -32,8 +32,8 @@ extern "C" {
 #define PCA9685_ALLCALL         0x01
 
 // Servo pulse parameters (adjust these for your servo)
-#define SERVO_MIN_PULSE  150   // Minimum pulse length (0 degrees)
-#define SERVO_MAX_PULSE  600   // Maximum pulse length (180 degrees)
+#define SERVO_MIN_PULSE  125   // Minimum pulse length (0 degrees)
+#define SERVO_MAX_PULSE  500   // Maximum pulse length (180 degrees)
 
 typedef struct {
     I2C_HandleTypeDef *hi2c;

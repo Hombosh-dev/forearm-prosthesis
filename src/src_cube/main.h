@@ -9,17 +9,18 @@ extern "C"
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "pca9685.h"
+#include "servo_control.h"
+#include "gestures.h"
+#include <stdbool.h>
+#include <math.h>
 
     const uint16_t SAMPLES = 1024; // SR = 400kHz
     const uint16_t ADC_CHANNELS = 4;
     // extern I2C_HandleTypeDef hi2c1;
     // typedef struct __I2C_HandleTypeDef;
-
     void Error_Handler(void);
     void TestServo(void);
-    void ScanI2CDevices(void);
-    void ScanPCA9685Addresses(void);  
-    void TestI2CBasic(void); 
+    
 /* Private defines -----------------------------------------------------------*/
 #define DATA_Ready_Pin GPIO_PIN_2
 #define DATA_Ready_GPIO_Port GPIOE

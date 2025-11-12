@@ -17,7 +17,7 @@ typedef struct {
  * співпадати з порядком в 'enum GestureID_t' у gestures.h!
  */
 static const GestureDefinition_t g_gesture_database[GESTURE_COUNT] = {
-    // ID                  Name            {Мізинець, Безім., Серед., Вказ., Великий}
+    // ID                  Name         {Мізинець, Безім., Серед., Вказ., Великий}
     {GESTURE_OPEN_HAND, "OPEN_HAND",    {0,     0,     0,     0,     0}},
     {GESTURE_FIST,      "FIST",         {180, 180, 180, 180, 180}},
     {GESTURE_POINT,     "POINT",        {180, 180, 180,   0, 180}},

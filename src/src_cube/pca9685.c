@@ -60,7 +60,7 @@ bool PCA9685_SetServoAngle(PCA9685_HandleTypeDef *pca, uint8_t channel, uint8_t 
     
     // Map angle to pulse width
     uint16_t pulse = SERVO_MIN_PULSE + ((SERVO_MAX_PULSE - SERVO_MIN_PULSE) * angle) / 180;
-    
+    printf("Servo %d: Angle=%d° -> Pulse=%dμs\r\n", channel, angle, pulse);
     // Set PWM (always start at 0, end at pulse value)
     return PCA9685_SetPWM(pca, channel, 0, pulse);
 }
