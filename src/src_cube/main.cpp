@@ -9,10 +9,12 @@
 #include "servo_control.h"
 #include "gestures.h"
 #include <stdio.h>
+#include <cstdio>
+#include <fstream>
+#include <string>
 
 volatile bool data_rdy_f = false;
 uint16_t adc_buffer[ADC_CHANNELS * SAMPLES] = { 0 };
-
 PCA9685_HandleTypeDef pca9685;
 
 typedef struct
@@ -38,6 +40,26 @@ I2C_devices_list_t *I2C_CheckBusDevices(void)
     }
     return &i2c_devices;
 }
+
+
+void LogADCDataToFile()
+{
+    static std::ofstream adcfile("adc_data.csv");
+    if (!adcfile.is_open()) return;
+    
+    for (int i = 0; i < SAMPLES; i += 8)
+    {
+        adcfile << adc_buffer[i * ADC_CHANNELS + 0] << ","
+                << adc_buffer[i * ADC_CHANNELS + 1] << ","
+                << adc_buffer[i * ADC_CHANNELS + 2] << ","
+                << adc_buffer[i * ADC_CHANNELS + 3] << std::endl;
+    }
+    adcfile.flush();
+}
+
+// Викликайте цю функцію після виводу в UART:
+// printf(">CH1:%d,CH2:%d,CH3:%d\r\n", ...);
+// LogADCDataToFile();
 
 
 int main(void)
@@ -67,7 +89,7 @@ int main(void)
     if (PCA9685_Init(&pca9685, &hi2c1, PCA9685_I2C_ADDRESS, 50.0))
     {
         printf("PCA9685 initialized successfully\r\n");
-        TestServo();
+        // TestServo();
     }
     else
     {
@@ -80,7 +102,7 @@ int main(void)
             if (PCA9685_Init(&pca9685, &hi2c1, alt_addresses[i], 50.0))
             {
                 printf("PCA9685 found at 0x%02X and initialized!\r\n", alt_addresses[i]);
-                TestServo();
+                // TestServo();
                 break;
             }
         }
@@ -108,15 +130,16 @@ int main(void)
             for (int i = 0; i < SAMPLES; i += 8)
             {
             // printf("1 %d, 2 %d, 3 %d, 4 %d,\n",
-                printf(">CH1:%d,CH2:%d,CH3:%d,CH4:%d\r\n",
+                // printf(">CH1:%d,CH2:%d,CH3:%d,CH4:%d\r\n",
+                printf(">CH1:%d,CH2:%d,CH3:%d\r\n",
                     adc_buffer[i * ADC_CHANNELS + 0],  // Channel 0 (PA0)
                     adc_buffer[i * ADC_CHANNELS + 1],  // Channel 1 (PA1)
-                    adc_buffer[i * ADC_CHANNELS + 2],  // Channel 2 (PA2)
-                    adc_buffer[i * ADC_CHANNELS + 3]); // Channel 3 (PA3)
+                    adc_buffer[i * ADC_CHANNELS + 2]);  // Channel 2 (PA2)
+                    // adc_buffer[i * ADC_CHANNELS + 3]); // Channel 3 (PA3)
 
                     HAL_Delay(10);
             }
-            
+
             HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
             data_rdy_f = false;
             HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS * SAMPLES);
@@ -124,6 +147,8 @@ int main(void)
         HAL_Delay(10);
     }
 }
+
+
 
 void TestServo(void)
 {
