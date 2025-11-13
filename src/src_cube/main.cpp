@@ -86,6 +86,7 @@ int main(void)
         }
     }
 
+
     // start ADC with DMA for 4 channels
     if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS * SAMPLES) != HAL_OK)
     {
@@ -126,57 +127,91 @@ int main(void)
 
 void TestServo(void)
 {
-    printf("Testing servo 1...\r\n");
+    printf("\r\n=== SERVO GESTURE TEST ===\r\n");
 
+    HAL_Delay(2000);
+    Gesture_Execute(GESTURE_OPEN_HAND);
+    HAL_Delay(1000);
+
+    Gesture_Execute(GESTURE_FIST);
+    HAL_Delay(1000);
+
+    // Gesture_Execute(GESTURE_OPEN_HAND);
+    // HAL_Delay(2000);
+
+    TestFingerSequence();
+    // HAL_Delay(6000);
+    Gesture_Execute(GESTURE_OPEN_HAND);
+
+    printf("\r\n=== GESTURE TESTING COMPLETE ===\r\n");
+    printf("Entering main loop with ADC data...\r\n");
+
+    // SetServo1Angle(90);
+    // HAL_Delay(1000);
+    // SetServo1Angle(90); // 1
+
+    // // SetServo2Angle(135);
+    // HAL_Delay(500);
+    // SetServo2Angle(0); // 135 closed 2
+
+    // // SetServo3Angle(90);
+    // HAL_Delay(500);
+    // SetServo3Angle(180); // 90 closed 3
+
+    // // SetServo4Angle(10);
+    // HAL_Delay(500);
+    // SetServo4Angle(70); // 0 calm 70 5
+
+    // // SetServo5Angle(90);
+    // HAL_Delay(500); // 0 calm
+    // SetServo5Angle(0); // 135 4
+
+}
+
+void TestIndividualFingers(void) {
+    printf("\r\n--- Testing Individual Fingers ---\r\n");
+    
+    printf("Testing thumb...\r\n");
     SetServo1Angle(0);
     HAL_Delay(1000);
     SetServo1Angle(90);
     HAL_Delay(1000);
-    SetServo1Angle(180);
-    HAL_Delay(1000);
     SetServo1Angle(90);
-
-    printf("Testing servo 2...\r\n");
-
+    HAL_Delay(500);
+    
+    printf("Testing index finger...\r\n");
     SetServo2Angle(0);
     HAL_Delay(1000);
     SetServo2Angle(90);
     HAL_Delay(1000);
-    SetServo2Angle(180);
-    HAL_Delay(1000);
     SetServo2Angle(90);
-
-    printf("Testing servo 3...\r\n");
-
+    HAL_Delay(500);
+    
+    printf("Testing middle finger...\r\n");
     SetServo3Angle(0);
     HAL_Delay(1000);
     SetServo3Angle(90);
     HAL_Delay(1000);
-    SetServo3Angle(180);
-    HAL_Delay(1000);
     SetServo3Angle(90);
-
-    printf("Testing servo 4...\r\n");
-
+    HAL_Delay(500);
+    
+    printf("Testing ring finger...\r\n");
     SetServo4Angle(0);
     HAL_Delay(1000);
     SetServo4Angle(90);
     HAL_Delay(1000);
-    SetServo4Angle(180);
-    HAL_Delay(1000);
     SetServo4Angle(90);
-
-    printf("Testing servo 5...\r\n");
-
+    HAL_Delay(500);
+    
+    printf("Testing pinky finger...\r\n");
     SetServo5Angle(0);
     HAL_Delay(1000);
     SetServo5Angle(90);
     HAL_Delay(1000);
-    SetServo5Angle(180);
-    HAL_Delay(1000);
     SetServo5Angle(90);
-    printf("Testing servos complete\r\n");
-
+    HAL_Delay(500);
+    
+    Gesture_Execute(GESTURE_OPEN_HAND);
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
