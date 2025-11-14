@@ -14,8 +14,8 @@ extern "C"
 #include <stdbool.h>
 #include <math.h>
 
-    const uint16_t SAMPLES = 1024; // SR = 400kHz
-    const uint16_t ADC_CHANNELS = 4;
+    const uint16_t SAMPLES = 512; // SR = 400kHz
+    const uint16_t ADC_CHANNELS = 3;
     // extern I2C_HandleTypeDef hi2c1;
     // typedef struct __I2C_HandleTypeDef;
     void Error_Handler(void);

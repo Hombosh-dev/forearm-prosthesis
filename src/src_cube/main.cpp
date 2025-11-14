@@ -12,9 +12,12 @@
 #include <cstdio>
 #include <fstream>
 #include <string>
+#include <cstring>
 
 volatile bool data_rdy_f = false;
-uint16_t adc_buffer[ADC_CHANNELS * SAMPLES] = { 0 };
+// uint16_t adc_buffer[ADC_CHANNELS * SAMPLES] = { 0 };
+// memory alignment for DMA
+__attribute__((aligned(4))) uint16_t adc_buffer[ADC_CHANNELS * SAMPLES] = {0};
 PCA9685_HandleTypeDef pca9685;
 
 typedef struct
@@ -51,13 +54,11 @@ void LogADCDataToFile()
     {
         adcfile << adc_buffer[i * ADC_CHANNELS + 0] << ","
                 << adc_buffer[i * ADC_CHANNELS + 1] << ","
-                << adc_buffer[i * ADC_CHANNELS + 2] << ","
-                << adc_buffer[i * ADC_CHANNELS + 3] << std::endl;
+                << adc_buffer[i * ADC_CHANNELS + 2] <<  std::endl;
     }
     adcfile.flush();
 }
 
-// Викликайте цю функцію після виводу в UART:
 // printf(">CH1:%d,CH2:%d,CH3:%d\r\n", ...);
 // LogADCDataToFile();
 
@@ -72,8 +73,8 @@ int main(void)
     MX_ADC1_Init();
     MX_I2C1_Init();
 
-    printf("=== 4-CHANNEL DMA SENSOR PLOTTER ===\r\n");
-    printf("Channels: PA0, PA1, PA2, PA3\r\n");
+    printf("=== 3-CHANNEL DMA SENSOR PLOTTER ===\r\n");
+    printf("Channels: PA0, PA1, PA2\r\n");
     printf("Sample Rate: ~100 kHz per channel\r\n");
     printf("Total Samples: %d\r\n\r\n", ADC_CHANNELS * SAMPLES);
 
@@ -108,8 +109,30 @@ int main(void)
         }
     }
 
+    // // ADC Calibration
+    // #ifdef HAL_ADC_MODULE_ENABLED
+    // printf("Calibrating ADC...\r\n");
+    // if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) {
+    //     printf("ADC calibration failed or not supported!\r\n");
+    // } else {
+    //     printf("ADC calibration successful\r\n");
+    // }
+    // #endif printf("Calibrating ADC...\r\n");
+    // if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) {
+    //     printf("ADC calibration failed!\r\n");
+    // } else {
+    //     printf("ADC calibration successful\r\n");
+    // }
 
-    // start ADC with DMA for 4 channels
+    // HAL_Delay(100);
+
+    // Clear buffer before starting
+    for (int i = 0; i < ADC_CHANNELS * SAMPLES; i++) {
+        adc_buffer[i] = 0;
+    }
+
+
+    // start ADC with DMA for 3 channels
     if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS * SAMPLES) != HAL_OK)
     {
         Error_Handler();
@@ -127,24 +150,38 @@ int main(void)
         if (data_rdy_f)
         {
 
-            for (int i = 0; i < SAMPLES; i += 8)
-            {
-            // printf("1 %d, 2 %d, 3 %d, 4 %d,\n",
-                // printf(">CH1:%d,CH2:%d,CH3:%d,CH4:%d\r\n",
-                printf(">CH1:%d,CH2:%d,CH3:%d\r\n",
-                    adc_buffer[i * ADC_CHANNELS + 0],  // Channel 0 (PA0)
-                    adc_buffer[i * ADC_CHANNELS + 1],  // Channel 1 (PA1)
-                    adc_buffer[i * ADC_CHANNELS + 2]);  // Channel 2 (PA2)
-                    // adc_buffer[i * ADC_CHANNELS + 3]); // Channel 3 (PA3)
+            // for (int i = 0; i < SAMPLES; i += 8)
+            // {
+            //     printf(">CH1:%d,CH2:%d,CH3:%d\r\n",
+            //         adc_buffer[i * ADC_CHANNELS + 0],  // Channel 0 (PA0)
+            //         adc_buffer[i * ADC_CHANNELS + 1],  // Channel 1 (PA1)
+            //         adc_buffer[i * ADC_CHANNELS + 2]);  // Channel 2 (PA2)
 
-                    HAL_Delay(10);
+            //         // HAL_Delay(10);
+            // }
+            for (int sample_idx = 0; sample_idx < 16; sample_idx++) // Show first 16 samples
+            {
+                uint32_t base_idx = sample_idx * ADC_CHANNELS;
+                
+                uint16_t ch1 = adc_buffer[base_idx + 0];  // PA0 - should be ~4095
+                uint16_t ch2 = adc_buffer[base_idx + 1];  // PA1 - should be ~0
+                uint16_t ch3 = adc_buffer[base_idx + 2];  // PA2 - should be ~4095
+                
+                printf(">CH1:%d,CH2:%d,CH3:%d\r\n", ch1, ch2, ch3);
             }
 
-            HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+            HAL_Delay(10);
+            HAL_ADC_Stop_DMA(&hadc1);
+            HAL_Delay(5);
+            for (int i = 0; i < ADC_CHANNELS * SAMPLES; i++) {
+                adc_buffer[i] = 0;
+            }
+
+            // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
             data_rdy_f = false;
             HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS * SAMPLES);
         }
-        HAL_Delay(10);
+        // HAL_Delay(10);
     }
 }
 
@@ -243,6 +280,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
     if (hadc->Instance == ADC1)
     {
+        __DSB();
         data_rdy_f = true;
     }
 }
@@ -251,8 +289,8 @@ void Error_Handler(void)
 {
     while (1)
     {
-        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-        HAL_Delay(100);
+        // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        // HAL_Delay(100);
     }
 }
 
