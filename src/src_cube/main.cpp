@@ -143,8 +143,7 @@ int main(void)
 
             //         // HAL_Delay(10);
             // }
-            printf("start raw");
-            for (int sample_idx = 0; sample_idx < 16; sample_idx++) // Show first 16 samples
+            for (int sample_idx = 0; sample_idx < 512; sample_idx++) // Show first 16 samples
             {
                 uint32_t base_idx = sample_idx * ADC_CHANNELS;
                 
@@ -154,7 +153,6 @@ int main(void)
                 
                 printf(">CH1:%d,CH2:%d,CH3:%d\r\n", ch1, ch2, ch3);
             }
-            printf("end raw");
 
             HAL_Delay(10);
             HAL_ADC_Stop_DMA(&hadc1);
@@ -167,7 +165,7 @@ int main(void)
             data_rdy_f = false;
             HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS * SAMPLES);
         }
-        HAL_Delay(50);
+        // HAL_Delay(100);
         // HAL_Delay(10);
     }
 }
