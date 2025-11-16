@@ -8,6 +8,7 @@
 #include "stm32f4xx_hal.h"
 #include "servo_control.h"
 #include "gestures.h"
+#include "emg_control.h"
 #include <stdio.h>
 #include <cstdio>
 #include <fstream>
@@ -44,25 +45,6 @@ I2C_devices_list_t *I2C_CheckBusDevices(void)
     return &i2c_devices;
 }
 
-
-void LogADCDataToFile()
-{
-    static std::ofstream adcfile("adc_data.csv");
-    if (!adcfile.is_open()) return;
-    
-    for (int i = 0; i < SAMPLES; i += 8)
-    {
-        adcfile << adc_buffer[i * ADC_CHANNELS + 0] << ","
-                << adc_buffer[i * ADC_CHANNELS + 1] << ","
-                << adc_buffer[i * ADC_CHANNELS + 2] <<  std::endl;
-    }
-    adcfile.flush();
-}
-
-// printf(">CH1:%d,CH2:%d,CH3:%d\r\n", ...);
-// LogADCDataToFile();
-
-
 int main(void)
 {
     HAL_Init();
@@ -72,6 +54,7 @@ int main(void)
     MX_DMA_Init();
     MX_ADC1_Init();
     MX_I2C1_Init();
+    EMG_Control_Init();
 
     printf("=== 3-CHANNEL DMA SENSOR PLOTTER ===\r\n");
     printf("Channels: PA0, PA1, PA2\r\n");
@@ -90,7 +73,7 @@ int main(void)
     if (PCA9685_Init(&pca9685, &hi2c1, PCA9685_I2C_ADDRESS, 50.0))
     {
         printf("PCA9685 initialized successfully\r\n");
-        // TestServo();
+        TestServo();
     }
     else
     {
@@ -103,7 +86,7 @@ int main(void)
             if (PCA9685_Init(&pca9685, &hi2c1, alt_addresses[i], 50.0))
             {
                 printf("PCA9685 found at 0x%02X and initialized!\r\n", alt_addresses[i]);
-                // TestServo();
+                TestServo();
                 break;
             }
         }
@@ -150,6 +133,7 @@ int main(void)
         if (data_rdy_f)
         {
 
+            // EMG_Control_Process();
             // for (int i = 0; i < SAMPLES; i += 8)
             // {
             //     printf(">CH1:%d,CH2:%d,CH3:%d\r\n",
@@ -159,6 +143,7 @@ int main(void)
 
             //         // HAL_Delay(10);
             // }
+            printf("start raw");
             for (int sample_idx = 0; sample_idx < 16; sample_idx++) // Show first 16 samples
             {
                 uint32_t base_idx = sample_idx * ADC_CHANNELS;
@@ -169,6 +154,7 @@ int main(void)
                 
                 printf(">CH1:%d,CH2:%d,CH3:%d\r\n", ch1, ch2, ch3);
             }
+            printf("end raw");
 
             HAL_Delay(10);
             HAL_ADC_Stop_DMA(&hadc1);
@@ -181,6 +167,7 @@ int main(void)
             data_rdy_f = false;
             HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS * SAMPLES);
         }
+        HAL_Delay(50);
         // HAL_Delay(10);
     }
 }

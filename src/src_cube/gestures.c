@@ -22,7 +22,7 @@ static const GestureDefinition_t g_gesture_database[GESTURE_COUNT] = {
     {GESTURE_FIST,         "FIST",           {0,     135,   90,      10,    90}},
     {GESTURE_THUMB_CLOSE,  "THUMB_CLOSE",    {0,     0,     180,     70,     0}},
     {GESTURE_INDEX_CLOSE,  "INDEX_CLOSE",    {0,     135,   180,     70,    0}},
-    {GESTURE_MIDDLE_CLOSE, "MIDDLE_CLOSE",   {0,     0,     90,      70,    0}},
+    {GESTURE_MIDDLE_CLOSE, "MIDDLE_CLOSE",   {0,     0,     80,      70,    0}},
     {GESTURE_RING_CLOSE,   "RING_CLOSE",     {0,     0,     180,     10,    0}},
     {GESTURE_PINKY_CLOSE,  "PINKY_CLOSE",    {0,     0,     180,     70,    90}},
     {GESTURE_ALL_OPEN,     "ALL_OPEN",       {0,     0,     180,     70,    0}},
@@ -67,7 +67,7 @@ void TestFingerSequence(void) {
     Gesture_Execute(GESTURE_RING_CLOSE);
     HAL_Delay(1000);
 
-    printf("\r\n3. Closing index finger...\r\n");
+    printf("\r\n3. Closing ring finger...\r\n");
     Gesture_Execute(GESTURE_INDEX_CLOSE);
     HAL_Delay(1000);
     
@@ -75,7 +75,7 @@ void TestFingerSequence(void) {
     Gesture_Execute(GESTURE_MIDDLE_CLOSE);
     HAL_Delay(1000);
     
-    printf("\r\n5. Closing ring finger...\r\n");
+    printf("\r\n5. Closing index finger...\r\n");
     Gesture_Execute(GESTURE_PINKY_CLOSE);
     HAL_Delay(1000);
     

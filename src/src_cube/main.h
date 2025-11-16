@@ -11,6 +11,7 @@ extern "C"
 #include "pca9685.h"
 #include "servo_control.h"
 #include "gestures.h"
+#include "emg_control.h"
 #include <stdbool.h>
 #include <math.h>
 
@@ -18,8 +19,12 @@ extern "C"
     const uint16_t ADC_CHANNELS = 3;
     // extern I2C_HandleTypeDef hi2c1;
     // typedef struct __I2C_HandleTypeDef;
+    extern volatile bool data_rdy_f;
+    extern uint16_t adc_buffer[];
+
     void Error_Handler(void);
     void TestServo(void);
+    void TestIndividualFingers(void);
     
 /* Private defines -----------------------------------------------------------*/
 #define DATA_Ready_Pin GPIO_PIN_2
