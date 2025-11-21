@@ -3,22 +3,16 @@
 #include <stdio.h>
 
 typedef struct {
-    // uint16_t buf[EMG_WINDOW_SIZE][FIXED_ADC_CHANNELS];
-    // uint32_t sum[FIXED_ADC_CHANNELS];
-    // uint16_t filtered[FIXED_ADC_CHANNELS];
-
     uint16_t buf[EMG_WINDOW_SIZE];
     uint32_t sum;
     uint16_t filtered;
 
     uint16_t index;
     uint8_t full;
-
-    // uint8_t adcChannel;    
-    // uint8_t servoChannel;    
     uint8_t servoAngle; 
-    uint16_t lastRawValue;     
-    uint16_t lastFilteredValue;     
+    
+    uint16_t lastRawValue;       
+    uint16_t lastFilteredValue; 
 } EMG_t;
 
 static EMG_t emg = {0};
@@ -28,30 +22,36 @@ void EMG_Control_Init(void)
 {
     emg.index = 0;
     emg.full  = 0;
-
-    emg.adcChannel   = 0;     // CH1
-    emg.servoChannel = 0;     // Servo1
-    emg.servoAngle   = SERVO_REST_ANGLE;
-
-    printf("EMG Control ready. Threshold = %d\n", EMG_THRESHOLD);
+    emg.sum = 0;
+    emg.filtered = 0;
+    emg.servoAngle = SERVO_REST_ANGLE;
+    
+    printf("Single EMG Control initialized\r\n");
+    printf("Window=%d, Threshold=%d\r\n", 
+           EMG_WINDOW_SIZE, EMG_THRESHOLD);
+    printf("Angle range: %d-%d degrees\r\n", SERVO_REST_ANGLE, SERVO_ACTIVE_ANGLE);;
 }
 
 
-static void update_filter(uint16_t* raw)
+static void update_filter(uint16_t rawValue)
 {
+    emg.lastRawValue = rawValue;
+    
     uint16_t i = emg.index;
-
-    for (int ch = 0; ch < FIXED_ADC_CHANNELS; ch++)
-    {
-        uint16_t old = emg.buf[i][ch];
-        emg.buf[i][ch] = raw[ch];
-
-        emg.sum[ch] += raw[ch] - old;
-
-        uint16_t count = emg.full ? EMG_WINDOW_SIZE : (i + 1);
-        emg.filtered[ch] = emg.sum[ch] / count;
+    uint16_t old = emg.buf[i];
+    
+    emg.buf[i] = rawValue;
+    
+    if(emg.full) {
+        emg.sum += rawValue - old;
+    } else {
+        emg.sum += rawValue;
     }
-
+    
+    uint16_t count = emg.full ? EMG_WINDOW_SIZE : (i + 1);
+    emg.filtered = emg.sum / count;
+    emg.lastFilteredValue = emg.filtered;
+    
     emg.index++;
     if (emg.index >= EMG_WINDOW_SIZE) {
         emg.index = 0;
@@ -59,84 +59,93 @@ static void update_filter(uint16_t* raw)
     }
 }
 
-static void update_servo(uint16_t emgValue)
+static void update_servo_from_emg(void)
 {
-    // -------- HYSTERESIS VALUES --------
-    const uint16_t TH_ON  = EMG_THRESHOLD + 150;   // 1150
-    const uint16_t TH_OFF = EMG_THRESHOLD - 150;   // 850
+    const uint16_t TH_ON  = EMG_THRESHOLD + 100;   // top
+    const uint16_t TH_OFF = EMG_THRESHOLD - 50;    // bottom with hysteresis
+    
     static bool activated = false;
-
-    // -------- STATE MACHINE --------
+    uint16_t emgValue = emg.filtered;
+    
+    // hysteresis
     if (!activated && emgValue > TH_ON)
         activated = true;
-
     if (activated && emgValue < TH_OFF)
         activated = false;
-
-    // -------- TARGET ANGLE --------
-    uint8_t target;
-
-    if (!activated)
-    {
-        // Below lower threshold → relax
-        target = SERVO_REST_ANGLE;
+    
+    uint8_t targetAngle;
+    
+    if (!activated) {
+        targetAngle = SERVO_REST_ANGLE; 
+    } else {
+        uint32_t angleRange = SERVO_ACTIVE_ANGLE - SERVO_REST_ANGLE;
+        uint32_t signalRange = 4095 - TH_ON; 
+        
+        if(signalRange > 0 && emgValue > TH_ON) {
+            uint32_t tmp = (uint32_t)(emgValue - TH_ON) * angleRange / signalRange;
+            targetAngle = SERVO_REST_ANGLE + tmp;
+            
+            if (targetAngle > SERVO_ACTIVE_ANGLE)
+                targetAngle = SERVO_ACTIVE_ANGLE;
+        } else {
+            targetAngle = SERVO_REST_ANGLE;
+        }
     }
-    else
-    {
-        // Above upper threshold → active
-        uint32_t tmp = (uint32_t)(emgValue - TH_ON) *
-                       (SERVO_ACTIVE_ANGLE - SERVO_REST_ANGLE);
+    
+    if (emg.servoAngle < targetAngle) 
+        emg.servoAngle++;
+    else if (emg.servoAngle > targetAngle) 
+        emg.servoAngle--;
+    
+    SetServo1Angle(emg.servoAngle); 
+    SetServo2Angle(emg.servoAngle);  
+    SetServo3Angle(emg.servoAngle); 
+    SetServo4Angle(emg.servoAngle);  
+    SetServo5Angle(emg.servoAngle); 
+}
 
-        tmp /= (4095 - TH_ON);
+static void send_servo_commands(void)
+{
+    printf("SERVO_CMD: ");
+    printf("EMG_RAW=%u, ", emg.lastRawValue);
+    printf("EMG_FILT=%u, ", emg.lastFilteredValue);
+    printf("ANGLE=%d, ", emg.servoAngle);
 
-        target = SERVO_REST_ANGLE + tmp;
-        if (target > SERVO_ACTIVE_ANGLE)
-            target = SERVO_ACTIVE_ANGLE;
+    printf(">CH1:%d,CH2:%d,CH3:%d\r\n", emg.lastRawValue, 100, 110);
+    
+    if (emg.lastFilteredValue > EMG_THRESHOLD + 100) {
+        printf("STATUS=ACTIVE");
+    } else if (emg.lastFilteredValue > EMG_THRESHOLD) {
+        printf("STATUS=THRESHOLD");
+    } else {
+        printf("STATUS=INACTIVE");
     }
-
-    // -------- SMOOTH RAMPING --------
-    if (emg.servoAngle < target) emg.servoAngle++;
-    else if (emg.servoAngle > target) emg.servoAngle--;
-
-    // -------- WRITE SERVO --------
-    switch (emg.servoChannel) {
-        case 0: SetServo1Angle(emg.servoAngle); break;
-        case 1: SetServo2Angle(emg.servoAngle); break;
-        case 2: SetServo3Angle(emg.servoAngle); break;
-        case 3: SetServo4Angle(emg.servoAngle); break;
-        case 4: SetServo5Angle(emg.servoAngle); break;
-    }
+    
+    printf("\r\n");
 }
 
 void EMG_Control_Process(void)
 {
-    static uint32_t last = 0;
+    static uint32_t lastUpdate = 0;
     uint32_t now = HAL_GetTick();
 
-    if (now - last < EMG_UPDATE_RATE)
+    // update freq
+    if (now - lastUpdate < EMG_UPDATE_RATE)
         return;
-    last = now;
+    lastUpdate = now;
 
     if (!data_rdy_f)
         return;
 
-    // ---------- Read latest ADC ----------
-    uint16_t raw[3];
-    int i = (SAMPLES - 1) * ADC_CHANNELS;
+    // read ch0
+    uint16_t rawValue;
+    int lastSampleIndex = (SAMPLES - 1) * ADC_CHANNELS;
+    rawValue = adc_buffer[lastSampleIndex + ACTIVE_EMG_CHANNEL];
 
-    raw[0] = adc_buffer[i + 0];
-    raw[1] = adc_buffer[i + 1];
-    raw[2] = adc_buffer[i + 2];
+    update_filter(rawValue);
+    printf("EMG_DATA: RAW=%u, FILTERED=%u\r\n", 
+           emg.lastRawValue, emg.lastFilteredValue);
 
-    // ---------- Update filter ----------
-    update_filter(raw);
-
-    // ---------- Output for plotting ----------
-    printf(">CH1:%u,CH2:%u,CH3:%u\n",
-           emg.filtered[0],
-           emg.filtered[1],
-           emg.filtered[2]);
-
-    // ---------- Smooth servo control ----------
-    update_servo(emg.filtered[emg.adcChannel]);
+    update_servo_from_emg();
+    send_servo_commands();
 }

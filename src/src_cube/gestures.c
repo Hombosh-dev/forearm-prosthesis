@@ -10,22 +10,17 @@ typedef struct {
     uint8_t angles[NUM_FINGERS];
 } GestureDefinition_t;
 
-/**
- * Це єдине місце, яке редагуємо для додавання/зміни жестів.
- * Порядок кутів: {Мізинець, Безіменний, Середній, Вказівний, Великий}
- * ПРИМІТКА: Порядок елементів у цьому масиві МАЄ
- * співпадати з порядком в 'enum GestureID_t' у gestures.h!
- */
+
 static const GestureDefinition_t g_gesture_database[GESTURE_COUNT] = {
     // ID                  Name         {Мізинець, Безім., Серед., Вказ., Великий}
-    {GESTURE_OPEN_HAND,    "OPEN_HAND",      {0,     0,     180,     70,    0}},
-    {GESTURE_FIST,         "FIST",           {0,     135,   90,      10,    90}},
-    {GESTURE_THUMB_CLOSE,  "THUMB_CLOSE",    {0,     0,     180,     70,     0}},
-    {GESTURE_INDEX_CLOSE,  "INDEX_CLOSE",    {0,     135,   180,     70,    0}},
-    {GESTURE_MIDDLE_CLOSE, "MIDDLE_CLOSE",   {0,     0,     80,      70,    0}},
-    {GESTURE_RING_CLOSE,   "RING_CLOSE",     {0,     0,     180,     10,    0}},
-    {GESTURE_PINKY_CLOSE,  "PINKY_CLOSE",    {0,     0,     180,     70,    90}},
-    {GESTURE_ALL_OPEN,     "ALL_OPEN",       {0,     0,     180,     70,    0}},
+    {GESTURE_OPEN_HAND,    "OPEN_HAND",      {0,     0,     0,       0,     0}},
+    {GESTURE_FIST,         "FIST",           {135,   135,   135,     135,   135}},
+    {GESTURE_THUMB_CLOSE,  "THUMB_CLOSE",    {45,    0,     0,       0,     0}},
+    {GESTURE_INDEX_CLOSE,  "INDEX_CLOSE",    {0,     45,    0,       0,     0}},
+    {GESTURE_MIDDLE_CLOSE, "MIDDLE_CLOSE",   {0,     0,     45,      0,     0}},
+    {GESTURE_RING_CLOSE,   "RING_CLOSE",     {0,     0,     0,       45,    0}},
+    {GESTURE_PINKY_CLOSE,  "PINKY_CLOSE",    {0,     0,     0,       0,    45}},
+    {GESTURE_ALL_OPEN,     "ALL_OPEN",       {0,     0,     0,       0,     0}},
 };
 
 void Gesture_Execute(GestureID_t gesture_id) {

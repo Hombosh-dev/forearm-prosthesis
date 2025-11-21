@@ -4,10 +4,10 @@
 
 #define NUM_SERVOS 5
 #define THUMB_CONST 0
-#define INDEX_CONST 90
-#define MIDDLE_CONST 180
+#define INDEX_CONST 0
+#define MIDDLE_CONST 0
 #define RING_CONST 0
-#define PINKY_CONST 10
+#define PINKY_CONST 0
 // extern PCA9685_HandleTypeDef pca9685;
 
 void SetServo1Angle(uint8_t angle) {

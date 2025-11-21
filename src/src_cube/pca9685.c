@@ -31,6 +31,16 @@ bool PCA9685_Init(PCA9685_HandleTypeDef *pca, I2C_HandleTypeDef *hi2c, uint8_t a
         return false;
     }
     
+    // HAL_Delay(5);
+    // uint8_t mode1;
+    // if (!PCA9685_ReadRegister(pca, PCA9685_MODE1_REG, &mode1)) {
+    //     return false;
+    // }
+    // mode1 |= PCA9685_RESTART;
+    // if (!PCA9685_WriteRegister(pca, PCA9685_MODE1_REG, mode1)) {
+    //     return false;
+    // }
+
     HAL_Delay(1);
     
     // Set mode register with auto-increment
@@ -60,7 +70,7 @@ bool PCA9685_SetServoAngle(PCA9685_HandleTypeDef *pca, uint8_t channel, uint8_t 
     
     // Map angle to pulse width
     uint16_t pulse = SERVO_MIN_PULSE + ((SERVO_MAX_PULSE - SERVO_MIN_PULSE) * angle) / 180;
-    printf("Servo %d: Angle=%d° -> Pulse=%dμs\r\n", channel, angle, pulse);
+    // printf("Servo %d: Angle=%d° -> Pulse=%dμs\r\n", channel, angle, pulse);
     // Set PWM (always start at 0, end at pulse value)
     return PCA9685_SetPWM(pca, channel, 0, pulse);
 }
@@ -83,7 +93,7 @@ bool PCA9685_Sleep(PCA9685_HandleTypeDef *pca, bool sleep) {
 
 bool PCA9685_Reset(PCA9685_HandleTypeDef *pca) {
     // Software reset - write 0x06 to mode1 register (not the standard I2C general call)
-    return PCA9685_WriteRegister(pca, PCA9685_MODE1_REG, PCA9685_RESTART);
+    return PCA9685_WriteRegister(pca, PCA9685_MODE1_REG, 0x06);
 }
 
 // Private functions

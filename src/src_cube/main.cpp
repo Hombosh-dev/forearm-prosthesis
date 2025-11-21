@@ -73,7 +73,7 @@ int main(void)
     if (PCA9685_Init(&pca9685, &hi2c1, PCA9685_I2C_ADDRESS, 50.0))
     {
         printf("PCA9685 initialized successfully\r\n");
-        TestServo();
+        // TestServo();
     }
     else
     {
@@ -86,7 +86,7 @@ int main(void)
             if (PCA9685_Init(&pca9685, &hi2c1, alt_addresses[i], 50.0))
             {
                 printf("PCA9685 found at 0x%02X and initialized!\r\n", alt_addresses[i]);
-                TestServo();
+                // TestServo();
                 break;
             }
         }
@@ -132,41 +132,30 @@ int main(void)
     {
         if (data_rdy_f)
         {
-
-            // EMG_Control_Process();
-            // for (int i = 0; i < SAMPLES; i += 8)
+            // for (int sample_idx = 0; sample_idx < 512; sample_idx++) // Show first 16 samples
             // {
-            //     printf(">CH1:%d,CH2:%d,CH3:%d\r\n",
-            //         adc_buffer[i * ADC_CHANNELS + 0],  // Channel 0 (PA0)
-            //         adc_buffer[i * ADC_CHANNELS + 1],  // Channel 1 (PA1)
-            //         adc_buffer[i * ADC_CHANNELS + 2]);  // Channel 2 (PA2)
-
-            //         // HAL_Delay(10);
+            //     uint32_t base_idx = sample_idx * ADC_CHANNELS;
+                
+            //     uint16_t ch1 = adc_buffer[base_idx + 0];  // PA0 - should be ~4095
+            //     uint16_t ch2 = adc_buffer[base_idx + 1];  // PA1 - should be ~0
+            //     uint16_t ch3 = adc_buffer[base_idx + 2];  // PA2 - should be ~4095
+                
+            //     printf(">CH1:%d,CH2:%d,CH3:%d\r\n", ch1, ch2, ch3);
             // }
-            for (int sample_idx = 0; sample_idx < 512; sample_idx++) // Show first 16 samples
-            {
-                uint32_t base_idx = sample_idx * ADC_CHANNELS;
-                
-                uint16_t ch1 = adc_buffer[base_idx + 0];  // PA0 - should be ~4095
-                uint16_t ch2 = adc_buffer[base_idx + 1];  // PA1 - should be ~0
-                uint16_t ch3 = adc_buffer[base_idx + 2];  // PA2 - should be ~4095
-                
-                printf(">CH1:%d,CH2:%d,CH3:%d\r\n", ch1, ch2, ch3);
-            }
 
-            HAL_Delay(10);
-            HAL_ADC_Stop_DMA(&hadc1);
-            HAL_Delay(5);
-            for (int i = 0; i < ADC_CHANNELS * SAMPLES; i++) {
-                adc_buffer[i] = 0;
-            }
+            // HAL_Delay(10);
+            // HAL_ADC_Stop_DMA(&hadc1);
+            // HAL_Delay(5);
+            // for (int i = 0; i < ADC_CHANNELS * SAMPLES; i++) {
+            //     adc_buffer[i] = 0;
+            // }
 
-            // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+            EMG_Control_Process();
             data_rdy_f = false;
-            HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS * SAMPLES);
+            // HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS * SAMPLES);
         }
         // HAL_Delay(100);
-        // HAL_Delay(10);
+        HAL_Delay(1);
     }
 }
 
@@ -174,45 +163,62 @@ int main(void)
 
 void TestServo(void)
 {
-    printf("\r\n=== SERVO GESTURE TEST ===\r\n");
-
-    HAL_Delay(2000);
-    Gesture_Execute(GESTURE_OPEN_HAND);
-    HAL_Delay(1000);
-
-    Gesture_Execute(GESTURE_FIST);
-    HAL_Delay(1000);
-
-    // Gesture_Execute(GESTURE_OPEN_HAND);
+    printf("\r\n=== SERVO TEST ===\r\n");
+    
+    printf("Open hand (0 degrees)...\r\n");
+    SetServo1Angle(145); // ring
+    HAL_Delay(100);
+    SetServo2Angle(160);
+    HAL_Delay(100);
+    SetServo3Angle(170); // max
+    HAL_Delay(100);
+    SetServo4Angle(160); // max
+    HAL_Delay(100);
+    // SetServo5Angle(90);
     // HAL_Delay(2000);
+    
+    printf("Half fist (90 degrees)...\r\n");
+    SetServo1Angle(0);
+    HAL_Delay(100);
+    SetServo2Angle(0);
+    HAL_Delay(100);
+    SetServo3Angle(0);
+    HAL_Delay(100);
+    SetServo4Angle(0);
+    HAL_Delay(100);
+    // SetServo5Angle(90);
+    HAL_Delay(2000);
 
-    TestFingerSequence();
-    // HAL_Delay(6000);
-    Gesture_Execute(GESTURE_OPEN_HAND);
-
-    printf("\r\n=== GESTURE TESTING COMPLETE ===\r\n");
-    printf("Entering main loop with ADC data...\r\n");
-
-    // SetServo1Angle(90);
-    // HAL_Delay(1000);
-    // SetServo1Angle(90); // 1
-
-    // // SetServo2Angle(135);
-    // HAL_Delay(500);
-    // SetServo2Angle(0); // 135 closed 2
-
-    // // SetServo3Angle(90);
-    // HAL_Delay(500);
-    // SetServo3Angle(180); // 90 closed 3
-
-    // // SetServo4Angle(10);
-    // HAL_Delay(500);
-    // SetServo4Angle(70); // 0 calm 70 5
-
-    // // SetServo5Angle(90);
-    // HAL_Delay(500); // 0 calm
-    // SetServo5Angle(0); // 135 4
-
+    printf("Open hand (0 degrees)...\r\n");
+    SetServo1Angle(145); // ring
+    HAL_Delay(100);
+    SetServo2Angle(90);
+    HAL_Delay(100);
+    SetServo3Angle(160); // max
+    HAL_Delay(100);
+    SetServo4Angle(140); // max 160
+    HAL_Delay(100);
+    
+    // printf("Full fist (180 degrees)...\r\n");
+    // SetServo1Angle(180);
+    // HAL_Delay(100);
+    // SetServo2Angle(180);
+    // HAL_Delay(100);
+    // SetServo3Angle(180);
+    // HAL_Delay(100);
+    // SetServo4Angle(180);
+    // HAL_Delay(100);
+    // SetServo5Angle(180);
+    // HAL_Delay(2000);
+    
+    // printf("Return to open hand...\r\n");
+    // SetServo1Angle(0);
+    // SetServo2Angle(0);
+    // SetServo3Angle(0);
+    // SetServo4Angle(0);
+    // SetServo5Angle(0);
+    
+    printf("\r\n=== SERVO TEST COMPLETE ===\r\n");
 }
 
 void TestIndividualFingers(void) {
