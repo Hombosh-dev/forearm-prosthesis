@@ -63,15 +63,31 @@ static void update_servo_from_emg(void)
 {
     const uint16_t TH_ON  = EMG_THRESHOLD + 100;   // top
     const uint16_t TH_OFF = EMG_THRESHOLD - 50;    // bottom with hysteresis
-    
+    const uint32_t MIN_PEAK_DURATION = 50;         // ms
+
     static bool activated = false;
+    static uint32_t peakStartTime = 0;
+
     uint16_t emgValue = emg.filtered;
     
     // hysteresis
-    if (!activated && emgValue > TH_ON)
-        activated = true;
-    if (activated && emgValue < TH_OFF)
+    if (emgValue > TH_ON) {
+        if (peakStartTime == 0) {
+            peakStartTime = HAL_GetTick();
+        }
+        
+        if ((HAL_GetTick() - peakStartTime) >= MIN_PEAK_DURATION) {
+            activated = true;
+        }
+    } 
+    else {
+            peakStartTime = 0; 
+    }
+
+    if (activated && emgValue < TH_OFF) {
         activated = false;
+        peakStartTime = 0;
+    }
     
     uint8_t targetAngle;
     
