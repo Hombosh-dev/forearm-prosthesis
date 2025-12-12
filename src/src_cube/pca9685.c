@@ -110,3 +110,15 @@ static bool PCA9685_ReadRegister(PCA9685_HandleTypeDef *pca, uint8_t reg, uint8_
     }
     return true;
 }
+
+// Add to pca9685.c
+bool PCA9685_SetServoPulse(PCA9685_HandleTypeDef *pca, uint8_t channel, uint16_t pulse_us) {
+    // Convert microseconds to 12-bit PWM value
+    // PCA9685 resolution: 4096 steps @ 50Hz = 20ms period
+    // pulse_us / 20000 * 4096 = pulse_us * 0.2048
+    uint16_t pwm_value = (pulse_us * 4096) / 20000;
+    
+    if (pwm_value > 4095) pwm_value = 4095;
+    
+    return PCA9685_SetPWM(pca, channel, 0, pwm_value);
+}

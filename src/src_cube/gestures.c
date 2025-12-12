@@ -11,8 +11,8 @@ typedef struct {
 } GestureDefinition_t;
 
 
-static const GestureDefinition_t g_gesture_database[GESTURE_COUNT] = {
-    // ID                  Name         {Мізинець, Безім., Серед., Вказ., Великий}
+static const GestureDefinition_t g_gesture_database[8] = {
+    // ID                  Name         {Thumb, Index, Middle, Ring, Pinky}
     {GESTURE_OPEN_HAND,    "OPEN_HAND",      {0,     0,     0,       0,     0}},
     {GESTURE_FIST,         "FIST",           {135,   135,   135,     135,   135}},
     {GESTURE_THUMB_CLOSE,  "THUMB_CLOSE",    {45,    0,     0,       0,     0}},
@@ -24,7 +24,7 @@ static const GestureDefinition_t g_gesture_database[GESTURE_COUNT] = {
 };
 
 void Gesture_Execute(GestureID_t gesture_id) {
-    if (gesture_id >= GESTURE_COUNT) {
+    if (gesture_id >= 8) {
         printf("! Error: gesture does not exist (ID: %d)\r\n", gesture_id);
         return;
     }

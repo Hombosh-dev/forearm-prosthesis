@@ -1,3 +1,17 @@
+A0 - Fingers closing
+A1 - Thumb  opening
+A2 - Fingers opening
+
+3 - sharp 5 fingers OPEN, slow CLOSE
+3 - sharp 4 fingers CLOSE, slow OPEN
+~~~~useless moves~~~~
+2 - fist -> strong fist
+3 - sharp 5 fingers OPEN, slow CLOSE
+1 - slow CLOSE
+4 - thumb OPEN then 4 OPEN
+5 - thumb CLOSE-OPEN
+6 - 4 CLOSE-OPEN
+
 ---- Opened the serial port COM6 ----
 E=455, THUMB=296, OPEN=463, ANGLE=20, >CH1:440,CH2:303,CH3:310
 STATUS=INACTIVE

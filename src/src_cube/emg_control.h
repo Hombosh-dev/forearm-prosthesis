@@ -3,25 +3,31 @@
 
 #include "servo_control.h"
 
-#define EMG_WINDOW_SIZE     10
-#define FIXED_ADC_CHANNELS  3
+#define EMG_WINDOW_SIZE     50      // MA-50 filter you liked
 
-#define SERVO_REST_ANGLE    20
-#define SERVO_ACTIVE_ANGLE  160
+#define EMG_THRESHOLD       500     // Base threshold for all channels
+#define EMG_UPDATE_RATE     200      // 100Hz update (10ms)
+#define EMG_HYSTERESIS      50
 
-#define EMG_THRESHOLD_CLOSE       800 
-#define EMG_THRESHOLD_THUMB       600 
-#define EMG_THRESHOLD_OPEN        800     
-#define EMG_UPDATE_RATE     5     // 100 Hz
+#define TH_CLOSE_BASE       400     // Increase threshold
+#define TH_THUMB_BASE       350
+#define TH_OPEN_BASE        450
 
-#define CH_CLOSE  0  
-#define CH_THUMB  1  
-#define CH_OPEN   2
+// Channel mappings
+#define CH_CLOSE  0  // A0 - Fingers closing
+#define CH_THUMB  1  // A1 - Thumb opening
+#define CH_OPEN   2  // A2 - Fingers opening
+
+#define STATE_IDLE          0
+#define STATE_CLOSE         1
+#define STATE_OPEN          2
+#define STATE_THUMB         3
 
 extern volatile bool data_rdy_f;
 extern uint16_t adc_buffer[];
 
 void EMG_Control_Init(void);
 void EMG_Control_Process(void);
+void TestServoSequence(void);  // Add this
 
 #endif

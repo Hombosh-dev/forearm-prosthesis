@@ -1,3 +1,12 @@
+0-2s - maybe calm but the model turned over the had so there can be some signal
+3-7s - 4 fingers (except thumb i mean) close/open many times (exactly 7 times)
+8s - calm
+9-11s - tumb open/close 4 times
+12 - 18s - open close 4 fingers (+ slight moves of thumb) 6 times
+19s - calm
+20-25s - 4 fingers open/close
+26-27s - end of the experiment, useless moves
+
 EMG_DATA: RAW=219, FILTERED=222
 SERVO_CMD: EMG_RAW=219, EMG_FILT=222, ANGLE=20, >CH1:219,CH2:100,CH3:110
 STATUS=INACTIVE
