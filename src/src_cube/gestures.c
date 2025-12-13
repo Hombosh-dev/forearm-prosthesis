@@ -48,7 +48,6 @@ void Gesture_Execute(GestureID_t gesture_id) {
 void TestFingerSequence(void) {
     printf("\r\n=== STARTING FINGER SEQUENCE TEST ===\r\n");
     
-    // Start with open hand
     printf("\r\n1. Opening hand...\r\n");
     Gesture_Execute(GESTURE_OPEN_HAND);
     HAL_Delay(1000);
@@ -78,12 +77,10 @@ void TestFingerSequence(void) {
     // Gesture_Execute(GESTURE_RING_CLOSE);
     // HAL_Delay(1000);
     
-    // Now we should have a fist
     printf("\r\n7. Full fist (all fingers closed)...\r\n");
     Gesture_Execute(GESTURE_FIST);
     HAL_Delay(2000);
     
-    // Open all fingers simultaneously
     printf("\r\n8. Opening all fingers simultaneously...\r\n");
     Gesture_Execute(GESTURE_ALL_OPEN);
     HAL_Delay(2000);

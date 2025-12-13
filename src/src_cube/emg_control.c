@@ -1,4 +1,3 @@
-// emg_control.c - Implementing your exact MA-50 filter
 #include "emg_control.h"
 #include "main.h"
 #include <stdio.h>
@@ -6,127 +5,166 @@
 
 extern ADC_HandleTypeDef hadc1;
 
-// EXACT replica of your Python EMG_Filter struct
 typedef struct {
-    uint16_t buf[EMG_WINDOW_SIZE];  // Circular buffer
-    uint32_t sum;                    // Running sum
-    uint16_t filtered;               // Current filtered value
-    uint16_t index;                  // Current buffer index
-    uint8_t full;                    // Buffer full flag
-    uint16_t last_raw_value;         // Last raw sample
-    uint16_t threshold;              // Activation threshold
-    uint8_t activated;               // Activation state
-    char label;                      // Channel label ('C', 'T', 'O')
-    uint16_t baseline;               // Resting baseline
+    uint16_t buf[EMG_WINDOW_SIZE];
+    uint32_t sum;
+    uint16_t filtered;
+    uint16_t index;
+    uint8_t full;
+    uint16_t baseline;
+    uint16_t threshold;
+    uint8_t activated;
+    uint8_t activation_count;  
+    uint8_t deactivation_count;
+    char label;
 } EMG_Filter_t;
 
-// Three EMG channels (one for each muscle group)
-static EMG_Filter_t channels[3];
+EMG_Filter_t channels[3];
+ServoState_t servo_states[5] = {
+    {0, 0, 0, 150},      // thumb
+    {0, 0, 0, 180},      // index
+    {10, 10, 10, 170},   // middle
+    {20, 20, 20, 180},   // ring
+    {0, 0, 0, 120}       // pinky
+};
+
 static uint8_t current_state = STATE_IDLE;
 static uint32_t state_change_time = 0;
+static uint32_t last_emg_activity = 0;
 
-// === YOUR EXACT FILTER IMPLEMENTATION ===
-// This matches your Python EMGFilter.update_filter() exactly
 static void update_filter(EMG_Filter_t *filter, uint16_t raw_value) {
-    filter->last_raw_value = raw_value;
-    
     uint16_t i = filter->index;
     uint16_t old_value = filter->buf[i];
     filter->buf[i] = raw_value;
     
     if (filter->full) {
-        // Buffer is full: subtract old, add new
         filter->sum += raw_value - old_value;
     } else {
-        // Buffer still filling: just add new value
         filter->sum += raw_value;
     }
     
-    // Calculate average - EXACTLY as in Python
     uint16_t count = filter->full ? EMG_WINDOW_SIZE : (filter->index + 1);
-    filter->filtered = filter->sum / count;  // Integer division
+    filter->filtered = filter->sum / count;
     
-    // Update circular buffer index
-    filter->index++;
-    if (filter->index >= EMG_WINDOW_SIZE) {
-        filter->index = 0;
-        filter->full = 1;  // Buffer is now full
-    }
+    filter->index = (filter->index + 1) % EMG_WINDOW_SIZE;
+    if (filter->index == 0) filter->full = 1;
 }
 
-// Dynamic baseline tracking (automatic calibration)
 static void update_baseline(EMG_Filter_t *filter) {
-    static uint32_t last_baseline_update[3] = {0};
-    uint8_t ch_idx = filter->label - 'C';  // 0=C, 1=T, 2=O
+    static uint32_t last_update[3] = {0};
+    uint8_t ch_idx = filter->label - 'C';
     
-    // Update baseline every 2 seconds
-    if (HAL_GetTick() - last_baseline_update[ch_idx] > 2000) {
-        // Simple low-pass filter for baseline
-        filter->baseline = (filter->baseline * 7 + filter->filtered) / 8;
-        last_baseline_update[ch_idx] = HAL_GetTick();
+    if (!filter->activated && (HAL_GetTick() - last_update[ch_idx] > 3000)) {
+        filter->baseline = (filter->baseline * 15 + filter->filtered) / 16;
+        last_update[ch_idx] = HAL_GetTick();
     }
 }
 
-// Activation detection with hysteresis (like your Python code)
 static void detect_activation(EMG_Filter_t *filter) {
     int16_t signal_above = (int16_t)filter->filtered - (int16_t)filter->baseline;
     
-    // Your activation logic from Python
     if (signal_above > filter->threshold + EMG_HYSTERESIS) {
-        filter->activated = 1;
-    } else if (signal_above < filter->threshold - EMG_HYSTERESIS) {
-        filter->activated = 0;
-    }
-    
-    // Optional: Debug activation
-    static uint32_t last_debug[3] = {0};
-    if (HAL_GetTick() - last_debug[filter->label - 'C'] > 2000) {
-        printf("CH%c: Base=%d, Filt=%d, Above=%d, Act=%d\r\n",
-               filter->label, filter->baseline, filter->filtered, 
-               signal_above, filter->activated);
-        last_debug[filter->label - 'C'] = HAL_GetTick();
+        filter->activation_count++;
+        filter->deactivation_count = 0;
+        
+        if (filter->activation_count >= 3) {
+            filter->activated = 1;
+        }
+    } 
+    else if (signal_above < filter->threshold - EMG_HYSTERESIS) {
+        filter->deactivation_count++;
+        filter->activation_count = 0;
+        
+        if (filter->deactivation_count >= 5) {
+            filter->activated = 0;
+        }
+    } else {
+        filter->activation_count = 0;
+        filter->deactivation_count = 0;
     }
 }
 
+static uint8_t calculate_confidence(uint8_t desired_state) {
+    uint8_t confidence = 0;
+    
+    switch(desired_state) {
+        case STATE_CLOSE:
+            if (channels[0].activated && !channels[2].activated) {
+                confidence = 100;
+            } 
+            else if (channels[0].activated && channels[2].activated) {
+                int16_t close_signal = channels[0].filtered - channels[0].baseline;
+                int16_t open_signal = channels[2].filtered - channels[2].baseline;
+                if (close_signal > open_signal * 1.5) {
+                    confidence = 70;
+                }
+            }
+            break;
+            
+        case STATE_OPEN:
+            if (channels[2].activated && !channels[0].activated) {
+                confidence = 100;
+            }
+            else if (channels[2].activated && channels[0].activated) {
+                int16_t close_signal = channels[0].filtered - channels[0].baseline;
+                int16_t open_signal = channels[2].filtered - channels[2].baseline;
+                if (open_signal > close_signal * 1.5) {
+                    confidence = 70;
+                }
+            }
+            break;
+            
+        case STATE_THUMB:
+            if (channels[1].activated && !channels[0].activated && !channels[2].activated) {
+                confidence = 100;
+            }
+            break;
+    }
+    
+    return confidence;
+}
+
 void EMG_Control_Init(void) {
-    // Initialize Close channel (CH1)
+    // initialize Close channel (CH1)
     channels[0].label = 'C';
     channels[0].threshold = TH_CLOSE_BASE;
-    channels[0].baseline = 500;  // Initial guess
+    channels[0].baseline = 500;
     
-    // Initialize Thumb channel (CH2)
+    // initialize Thumb channel (CH2)
     channels[1].label = 'T';
     channels[1].threshold = TH_THUMB_BASE;
     channels[1].baseline = 450;
     
-    // Initialize Open channel (CH3)
+    // initialize Open channel (CH3)
     channels[2].label = 'O';
     channels[2].threshold = TH_OPEN_BASE;
     channels[2].baseline = 550;
     
-    // Initialize all filters
+    // initialize all filters
     for (int i = 0; i < 3; i++) {
         memset(channels[i].buf, 0, sizeof(channels[i].buf));
         channels[i].sum = 0;
         channels[i].filtered = 0;
         channels[i].index = 0;
         channels[i].full = 0;
-        channels[i].last_raw_value = 0;
+        channels[i].baseline = 500 + (i * 50);
         channels[i].activated = 0;
+        channels[i].activation_count = 0;
+        channels[i].deactivation_count = 0;
     }
     
     current_state = STATE_IDLE;
     state_change_time = HAL_GetTick();
+    last_emg_activity = HAL_GetTick();
     
-    printf("=== MA-50 EMG FILTER SYSTEM ===\r\n");
-    printf("Window: %d samples, Thresholds: C=%d T=%d O=%d\r\n", 
-           EMG_WINDOW_SIZE, TH_CLOSE_BASE, TH_THUMB_BASE, TH_OPEN_BASE);
-    printf("Hysteresis: %d\r\n", EMG_HYSTERESIS);
+    printf("=== EMG CONTROL ===\r\n");
+    printf("Thresholds: C=%d T=%d O=%d\r\n", TH_CLOSE_BASE, TH_THUMB_BASE, TH_OPEN_BASE);
+    printf("Hysteresis: %d, Debounce: %dms\r\n", EMG_HYSTERESIS, STATE_DEBOUNCE_MS);
 }
 
-void EMG_Calibrate(void) {
-    printf("\r\n=== EMG CALIBRATION ===\r\n");
-    printf("Keep arm relaxed for 3 seconds...\r\n");
+void EMG_AutoCalibrate(void) {
+    printf("\r\n=== AUTO-CALIBRATION ===\r\n");
+    printf("Please relax your arm for 3 seconds...\r\n");
     
     uint32_t start_time = HAL_GetTick();
     uint32_t sums[3] = {0};
@@ -135,12 +173,10 @@ void EMG_Calibrate(void) {
     while (HAL_GetTick() - start_time < 3000) {
         if (data_rdy_f) {
             int last_idx = (SAMPLES - 1) * ADC_CHANNELS;
-            
             sums[0] += adc_buffer[last_idx + CH_CLOSE];
             sums[1] += adc_buffer[last_idx + CH_THUMB];
             sums[2] += adc_buffer[last_idx + CH_OPEN];
             count++;
-            
             data_rdy_f = false;
         }
         HAL_Delay(1);
@@ -151,26 +187,24 @@ void EMG_Calibrate(void) {
         channels[1].baseline = sums[1] / count;
         channels[2].baseline = sums[2] / count;
         
-        // Set thresholds slightly above baseline
-        channels[0].threshold = channels[0].baseline + 150;
-        channels[1].threshold = channels[1].baseline + 120;
-        channels[2].threshold = channels[2].baseline + 180;
+        channels[0].threshold = channels[0].baseline + 300;
+        channels[1].threshold = channels[1].baseline + 250;
+        channels[2].threshold = channels[2].baseline + 350;
         
-        printf("Calibrated baselines: C=%d, T=%d, O=%d\r\n",
-               channels[0].baseline, channels[1].baseline, channels[2].baseline);
-        printf("Calibrated thresholds: C=%d, T=%d, O=%d\r\n",
-               channels[0].threshold, channels[1].threshold, channels[2].threshold);
+        printf("Calibrated: C=%d(+%d), T=%d(+%d), O=%d(+%d)\r\n",
+               channels[0].baseline, channels[0].threshold - channels[0].baseline,
+               channels[1].baseline, channels[1].threshold - channels[1].baseline,
+               channels[2].baseline, channels[2].threshold - channels[2].baseline);
     }
 }
 
 void EMG_Control_Process(void) {
     static uint32_t last_process = 0;
-    static uint32_t last_raw_print = 0;
-    static uint32_t last_filter_print = 0;
+    static uint32_t last_print = 0;
     uint32_t now = HAL_GetTick();
     
-    // Process at 100Hz (10ms) - matches your sample rate
-    if (now - last_process < 10) {
+    // process at 50Hz (20ms)
+    if (now - last_process < 20) {
         return;
     }
     last_process = now;
@@ -179,157 +213,176 @@ void EMG_Control_Process(void) {
         return;
     }
     
-    // Get latest sample from DMA buffer
     int last_idx = (SAMPLES - 1) * ADC_CHANNELS;
     
-    // Update each channel with your MA-50 filter
     update_filter(&channels[0], adc_buffer[last_idx + CH_CLOSE]);
     update_filter(&channels[1], adc_buffer[last_idx + CH_THUMB]);
     update_filter(&channels[2], adc_buffer[last_idx + CH_OPEN]);
     
-    // Update baselines
+    // update baselines
     for (int i = 0; i < 3; i++) {
         update_baseline(&channels[i]);
     }
     
-    // Detect activations
+    // detect activations with persistence
     for (int i = 0; i < 3; i++) {
         detect_activation(&channels[i]);
     }
     
-    // === STATE MACHINE ===
     uint8_t new_state = STATE_IDLE;
+    uint8_t close_confidence = calculate_confidence(STATE_CLOSE);
+    uint8_t open_confidence = calculate_confidence(STATE_OPEN);
+    uint8_t thumb_confidence = calculate_confidence(STATE_THUMB);
     
-    // Priority-based state machine (like your Python logic)
-    if (channels[0].activated && !channels[2].activated) {
-        // Close state - channel C active, O not active
+    // state selection with confidence thresholds
+    if (close_confidence >= 70) {
         new_state = STATE_CLOSE;
-    } 
-    else if (channels[2].activated && !channels[0].activated) {
-        // Open state - channel O active, C not active
+    } else if (open_confidence >= 70) {
         new_state = STATE_OPEN;
-    }
-    else if (channels[1].activated && !channels[0].activated && !channels[2].activated) {
-        // Thumb state - only T active
+    } else if (thumb_confidence >= 80) { 
         new_state = STATE_THUMB;
-    }
-    else {
-        // Idle state
+    } else {
         new_state = STATE_IDLE;
     }
     
-    // State change with debouncing (100ms)
+    // check for EMG activity timeout
+    uint8_t any_activity = channels[0].activated || channels[1].activated || channels[2].activated;
+    if (any_activity) {
+        last_emg_activity = now;
+    } else if (now - last_emg_activity > 2000) {
+        // no activity for 2 seconds - force idle
+        new_state = STATE_IDLE;
+    }
+    
+    // state change with debounce
     if (new_state != current_state) {
-        if (now - state_change_time > 100) {
+        if (now - state_change_time > STATE_DEBOUNCE_MS) {
+            printf("STATE: %s (C:%d%%, O:%d%%, T:%d%%)\r\n",
+                   new_state == STATE_CLOSE ? "CLOSE" :
+                   new_state == STATE_OPEN ? "OPEN" :
+                   new_state == STATE_THUMB ? "THUMB" : "IDLE",
+                   close_confidence, open_confidence, thumb_confidence);
+            
             current_state = new_state;
             state_change_time = now;
-            printf("STATE: %s\r\n", 
-                   current_state == STATE_CLOSE ? "CLOSE" :
-                   current_state == STATE_OPEN ? "OPEN" :
-                   current_state == STATE_THUMB ? "THUMB" : "IDLE");
         }
     }
     
-    // === SERVO CONTROL ===
-    uint8_t servo_angle = 0;
-    
     switch(current_state) {
         case STATE_CLOSE: {
-            // Map filtered value above baseline to angle
             int16_t signal = channels[0].filtered - channels[0].baseline;
-        if (signal < 0) signal = 0;
+            if (signal < 0) signal = 0;
+            
+            // map to angle with smoothing
+            uint8_t target = (signal * 180) / 800;
+            if (target > 180) target = 180;
+            
+            // smooth movement toward target
+            for (int i = 0; i < 5; i++) {
+                if (servo_states[i].target_angle < target) {
+                    servo_states[i].target_angle += 2;
+                } else if (servo_states[i].target_angle > target) {
+                    servo_states[i].target_angle -= 2;
+                }
+                
+                if (servo_states[i].target_angle > servo_states[i].max_angle) {
+                    servo_states[i].target_angle = servo_states[i].max_angle;
+                }
+            }
+            break;
+        }
         
-        // Normalize to 0-180 (adjust scale factor based on your EMG range)
-        uint8_t normalized = (signal * 180) / 600;  // Adjust 600 based on your max EMG
+        case STATE_OPEN: {
+            int16_t signal = channels[2].filtered - channels[2].baseline;
+            if (signal < 0) signal = 0;
+            
+            // inverse mapping for opening
+            uint8_t target = 180 - ((signal * 180) / 800);
+            if (target > 180) target = 0;
+            
+            // smooth movement toward target
+            for (int i = 0; i < 5; i++) {
+                if (servo_states[i].target_angle > target) {
+                    servo_states[i].target_angle -= 3;
+                } else if (servo_states[i].target_angle < target) {
+                    servo_states[i].target_angle += 1;
+                }
+                
+                if (servo_states[i].target_angle < servo_states[i].min_angle) {
+                    servo_states[i].target_angle = servo_states[i].min_angle;
+                }
+            }
+            break;
+        }
         
-        if (normalized > 180) normalized = 180;
+        case STATE_THUMB: {
+            int16_t signal = channels[1].filtered - channels[1].baseline;
+            if (signal < 0) signal = 0;
+            
+            uint8_t thumb_target = (signal * 150) / 800;
+            if (thumb_target > 150) thumb_target = 150;
+            
+            // smooth thumb movement
+            if (servo_states[0].target_angle < thumb_target) {
+                servo_states[0].target_angle += 2;
+            } else if (servo_states[0].target_angle > thumb_target) {
+                servo_states[0].target_angle -= 2;
+            }
+            
+            // slowly open other fingers
+            for (int i = 1; i < 5; i++) {
+                if (servo_states[i].target_angle > 0) {
+                    servo_states[i].target_angle -= 1;
+                }
+            }
+            break;
+        }
         
-        // Use your optimized servo mappings
-        SetServo1Normalized(normalized);  // Thumb - uses your mapping
-        SetServo2Normalized(normalized);  // Index - uses your mapping
-        SetServo3Normalized(normalized);  // Middle - uses your mapping
-        SetServo4Normalized(normalized);  // Ring - uses your extended mapping
-        SetServo5Normalized(normalized);  // Pinky - uses your adjusted mapping
-        break;
+        case STATE_IDLE:
+        default: {
+            // slowly open hand completely when idle
+            for (int i = 0; i < 5; i++) {
+                if (servo_states[i].target_angle > servo_states[i].min_angle) {
+                    servo_states[i].target_angle -= 1;
+                }
+                // never go below minimum
+                if (servo_states[i].target_angle < servo_states[i].min_angle) {
+                    servo_states[i].target_angle = servo_states[i].min_angle;
+                }
+            }
+            break;
+        }
     }
     
-    case STATE_OPEN: {
-        // For opening, we want inverse control
-        int16_t signal = channels[2].filtered - channels[2].baseline;
-        if (signal < 0) signal = 0;
-        
-        // Inverse: more signal = more open (0-180, where 180 is fully open)
-        uint8_t normalized = 180 - ((signal * 180) / 600);
-        if (normalized < 0) normalized = 0;
-        
-        SetServo1Normalized(normalized);
-        SetServo2Normalized(normalized);
-        SetServo3Normalized(normalized);
-        SetServo4Normalized(normalized);
-        SetServo5Normalized(normalized);
-        break;
-    }
+    SetServo1Angle(servo_states[0].target_angle);
+    SetServo2Angle(servo_states[1].target_angle);
+    SetServo3Angle(servo_states[2].target_angle);
+    SetServo4Angle(servo_states[3].target_angle);
+    SetServo5Angle(servo_states[4].target_angle);
     
-    case STATE_THUMB: {
-        // Thumb-only control
-        int16_t signal = channels[1].filtered - channels[1].baseline;
-        if (signal < 0) signal = 0;
-        
-        uint8_t normalized = (signal * 180) / 600;
-        if (normalized > 180) normalized = 180;
-        
-        // Only move thumb, keep others where they are
-        SetServo1Normalized(normalized);
-        
-        // Optional: you might want to slowly open other fingers
-        static uint8_t other_fingers = 0;
-        if (other_fingers > 0) other_fingers -= 1;
-        
-        SetServo2Normalized(other_fingers);
-        SetServo3Normalized(other_fingers);
-        SetServo4Normalized(other_fingers);
-        SetServo5Normalized(other_fingers);
-        break;
-    }
+    servo_states[0].current_angle = servo_states[0].target_angle;
+    servo_states[1].current_angle = servo_states[1].target_angle;
+    servo_states[2].current_angle = servo_states[2].target_angle;
+    servo_states[3].current_angle = servo_states[3].target_angle;
+    servo_states[4].current_angle = servo_states[4].target_angle;
     
-    case STATE_IDLE:
-    default: {
-        // Slowly open hand completely
-        static uint8_t idle_pos = 0;
-        if (idle_pos > 0) idle_pos -= 1;
-        
-        OpenHand();  // Or use SetAllServosNormalized(0) for your optimized open
-        break;
-    }
-}
-    
-    // === DEBUG OUTPUT ===
-    // Print raw data (100Hz)
-    if (now - last_raw_print >= 10) {
+    if (now - last_print >= 100) {  // every 100ms
         printf(">CH1:%d,CH2:%d,CH3:%d\r\n",
                adc_buffer[last_idx + CH_CLOSE],
                adc_buffer[last_idx + CH_THUMB],
                adc_buffer[last_idx + CH_OPEN]);
-        last_raw_print = now;
-    }
-    
-    // Print filtered data and state (20Hz)
-    if (now - last_filter_print >= 50) {
+        
         printf("EMG_FILT: C=%d(%c) T=%d(%c) O=%d(%c) | ",
                channels[0].filtered, channels[0].activated ? 'A' : 'I',
                channels[1].filtered, channels[1].activated ? 'A' : 'I',
                channels[2].filtered, channels[2].activated ? 'A' : 'I');
         
-        // Get current servo angles (simplified)
-        uint8_t s1, s2, s3, s4, s5;
-        // You might want to track actual servo angles separately
-        
         printf("ANGLES: S1=%d S2=%d S3=%d S4=%d S5=%d | ",
-               current_state == STATE_THUMB ? servo_angle : 0,
-               current_state == STATE_CLOSE ? servo_angle : 0,
-               current_state == STATE_CLOSE ? servo_angle : 0,
-               current_state == STATE_CLOSE ? servo_angle : 0,
-               current_state == STATE_CLOSE ? servo_angle : 0);
+               servo_states[0].current_angle,
+               servo_states[1].current_angle,
+               servo_states[2].current_angle,
+               servo_states[3].current_angle,
+               servo_states[4].current_angle);
         
         printf("STATE=");
         switch(current_state) {
@@ -339,9 +392,9 @@ void EMG_Control_Process(void) {
             default: printf("IDLE"); break;
         }
         
-        printf(" TH=%d\r\n", channels[0].threshold);
+        printf(" TH=%d\r\n", TH_CLOSE_BASE);
         
-        last_filter_print = now;
+        last_print = now;
     }
     
     data_rdy_f = false;

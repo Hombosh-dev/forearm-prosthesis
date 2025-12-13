@@ -1,4 +1,3 @@
-// servo_control.c - Updated with your exact angles
 #include "servo_control.h"
 #include <stdio.h>
 #include <math.h>
@@ -24,14 +23,8 @@ void SetServo3Angle(uint8_t angle) {
 
 void SetServo4Angle(uint8_t angle) {
     // Special handling for extended range servo (up to 200°)
-    if (angle > 180) {
-        // Map 181-200 to extended pulse width
-        uint16_t extended_pulse = 500 + ((angle - 180) * 5); // Extended pulse calculation
-        PCA9685_SetServoPulse(&pca9685, SERVO_RING_CHANNEL, extended_pulse);
-    } else {
-        angle = CLAMP_ANGLE(angle, SERVO4_MIN, SERVO4_MAX);
-        PCA9685_SetServoAngle(&pca9685, SERVO_RING_CHANNEL, angle);
-    }
+    angle = CLAMP_ANGLE(angle, SERVO4_MIN, SERVO4_MAX);
+    PCA9685_SetServoAngle(&pca9685, SERVO_RING_CHANNEL, angle);
     // printf("Servo4(Ring): Set to %d°\r\n", angle);
 }
 
@@ -41,17 +34,11 @@ void SetServo5Angle(uint8_t angle) {
     // printf("Servo5(Pinky): Set to %d° (clamped: %d°)\r\n", angle, angle);
 }
 
-// Enhanced normalized mapping functions
-// These map 0-180 normalized to your specific servo ranges
 void SetServo1Normalized(uint8_t normalized_angle) {
-    if (normalized_angle > 180) normalized_angle = 180;
-    
     if (normalized_angle <= 90) {
-        // 0-90 normalized maps to SERVO1_OPEN to SERVO1_HALF
         uint8_t angle = SERVO1_OPEN + (normalized_angle * (SERVO1_HALF - SERVO1_OPEN) / 90);
         SetServo1Angle(angle);
     } else {
-        // 90-180 normalized maps to SERVO1_HALF to SERVO1_CLOSED
         uint8_t angle = SERVO1_HALF + ((normalized_angle - 90) * (SERVO1_CLOSED - SERVO1_HALF) / 90);
         SetServo1Angle(angle);
     }
@@ -113,105 +100,103 @@ void SetAllServosNormalized(uint8_t normalized_angle) {
     SetServo5Normalized(normalized_angle);
 }
 
-// ================= YOUR OPTIMIZED GESTURES =================
 
 void OpenHand(void) {
-    printf("Gesture: Open Hand (Your optimized angles)\r\n");
-    SetServo1Angle(SERVO1_OPEN);     // Your: 0 OPEN
-    SetServo2Angle(SERVO2_OPEN);     // Your: 0 open
-    SetServo3Angle(SERVO3_OPEN);     // Your: 10 open
-    SetServo4Angle(SERVO4_OPEN);     // Your: 20 open
-    SetServo5Angle(SERVO5_OPEN);     // Your: 0 OPEN
+    printf("Gesture: Open Hand\r\n");
+    SetServo1Angle(SERVO1_OPEN);    
+    SetServo2Angle(SERVO2_OPEN); 
+    SetServo3Angle(SERVO3_OPEN);  
+    SetServo4Angle(SERVO4_OPEN);  
+    SetServo5Angle(SERVO5_OPEN);   
 }
 
 void HalfGrip(void) {
-    printf("Gesture: Half Grip (Your optimized angles)\r\n");
-    SetServo1Angle(SERVO1_HALF);     // Your: 90 half
-    SetServo2Angle(SERVO2_HALF);     // Your: 120 half
-    SetServo3Angle(SERVO3_HALF);     // Your: 120 half
-    SetServo4Angle(SERVO4_HALF);     // Your: 130 half
-    SetServo5Angle(SERVO5_HALF);     // Your: 90 half
+    printf("Gesture: Half Grip\r\n");
+    SetServo2Angle(SERVO2_HALF);     
+    SetServo1Angle(SERVO1_HALF);     
+    SetServo3Angle(SERVO3_HALF);     
+    SetServo4Angle(SERVO4_HALF);     
+    SetServo5Angle(SERVO5_HALF);     
 }
 
 void CloseHand(void) {
-    printf("Gesture: Close Hand/Fist (Your optimized angles)\r\n");
-    SetServo1Angle(SERVO1_CLOSED);   // Your: 150 closed
-    SetServo2Angle(SERVO2_CLOSED);   // Your: 180 closed
-    SetServo3Angle(SERVO3_CLOSED);   // Your: 170 closed
-    SetServo4Angle(SERVO4_CLOSED);   // Your: 200 closed better
-    SetServo5Angle(SERVO5_CLOSED);   // Your: 100 closed (adjusted)
+    printf("Gesture: Close Hand/Fist\r\n");
+    SetServo1Angle(SERVO1_CLOSED);   
+    SetServo2Angle(SERVO2_CLOSED);  
+    SetServo3Angle(SERVO3_CLOSED);   
+    SetServo4Angle(SERVO4_CLOSED);  
+    SetServo5Angle(SERVO5_CLOSED);  
 }
 
 void FourClosedThumbOpen(void) {
     printf("Gesture: 4 Fingers Closed, Thumb Open\r\n");
-    SetServo1Angle(SERVO1_OPEN);     // Thumb open
-    SetServo2Angle(SERVO2_CLOSED);   // Index closed
-    SetServo3Angle(SERVO3_CLOSED);   // Middle closed
-    SetServo4Angle(SERVO4_CLOSED);   // Ring closed
-    SetServo5Angle(SERVO5_CLOSED);   // Pinky closed
+    SetServo1Angle(SERVO1_OPEN);     
+    SetServo2Angle(SERVO2_CLOSED);   
+    SetServo3Angle(SERVO3_CLOSED);   
+    SetServo4Angle(SERVO4_CLOSED);   
+    SetServo5Angle(SERVO5_CLOSED);   
 }
 
 void PointGesture(void) {
     printf("Gesture: Point (Index extended)\r\n");
-    SetServo1Angle(SERVO1_CLOSED);   // Thumb closed
-    SetServo2Angle(SERVO2_OPEN);     // Index open
-    SetServo3Angle(SERVO3_CLOSED);   // Middle closed
-    SetServo4Angle(SERVO4_CLOSED);   // Ring closed
-    SetServo5Angle(SERVO5_CLOSED);   // Pinky closed
+    SetServo1Angle(SERVO1_CLOSED);   
+    SetServo2Angle(SERVO2_OPEN);    
+    SetServo3Angle(SERVO3_CLOSED);   
+    SetServo4Angle(SERVO4_CLOSED);   
+    SetServo5Angle(SERVO5_CLOSED);   
 }
 
 void OKGesture(void) {
     printf("Gesture: OK (Thumb and index making a circle)\r\n");
-    SetServo1Angle(60);              // Thumb half-bent
-    SetServo2Angle(60);              // Index half-bent
-    SetServo3Angle(SERVO3_CLOSED);   // Middle closed
-    SetServo4Angle(SERVO4_CLOSED);   // Ring closed
-    SetServo5Angle(SERVO5_CLOSED);   // Pinky closed
+    SetServo1Angle(60);             
+    SetServo2Angle(60);             
+    SetServo3Angle(SERVO3_CLOSED);  
+    SetServo4Angle(SERVO4_CLOSED);   
+    SetServo5Angle(SERVO5_CLOSED);  
 }
 
-// Your exact test sequence from the comment
-void TestYourServoSequence(void) {
-    printf("\r\n=== YOUR SERVO TEST SEQUENCE ===\r\n");
+void TestServoSequence(void) {
+    printf("\r\n=== SERVO TEST SEQUENCE ===\r\n");
     
-    printf("1. Open hand (your optimized angles)...\r\n");
-    SetServo1Angle(0);     // 0 OPEN
+    printf("1. Open hand...\r\n");
+    SetServo1Angle(0);     
     HAL_Delay(100);
-    SetServo2Angle(0);     // 0 open
+    SetServo2Angle(0);   
     HAL_Delay(100);
-    SetServo3Angle(10);    // 10 open
+    SetServo3Angle(10);    
     HAL_Delay(100);
-    SetServo4Angle(20);    // 20 open
+    SetServo4Angle(20);    
     HAL_Delay(100);
-    SetServo5Angle(0);     // 0 OPEN
+    SetServo5Angle(0);   
     HAL_Delay(2000);
     
-    printf("2. Half grip (your midpoints)...\r\n");
-    SetServo1Angle(90);    // 90 half
+    printf("2. Half grip...\r\n");
+    SetServo1Angle(90);   
     HAL_Delay(100);
-    SetServo2Angle(120);   // 120 half
+    SetServo2Angle(120);   
     HAL_Delay(100);
-    SetServo3Angle(120);   // 120 half
+    SetServo3Angle(120);  
     HAL_Delay(100);
-    SetServo4Angle(130);   // 130 half
+    SetServo4Angle(130);  
     HAL_Delay(100);
-    SetServo5Angle(90);    // 90 half
+    SetServo5Angle(90);   
     HAL_Delay(2000);
     
-    printf("3. Full fist (your optimized closed)...\r\n");
-    SetServo1Angle(150);   // 150 closed
+    printf("3. Full fist...\r\n");
+    SetServo1Angle(150);   
     HAL_Delay(100);
-    SetServo2Angle(180);   // 180 closed
+    SetServo2Angle(180);   
     HAL_Delay(100);
-    SetServo3Angle(170);   // 170 closed
+    SetServo3Angle(170);   
     HAL_Delay(100);
-    SetServo4Angle(200);   // 200 closed better (extended)
+    SetServo4Angle(180);   
     HAL_Delay(100);
-    SetServo5Angle(100);   // 120 closed (better -20) -> using 100
+    SetServo5Angle(120);
     HAL_Delay(2000);
     
     printf("4. Return to open hand...\r\n");
     OpenHand();
     HAL_Delay(1000);
     
-    printf("\r\n=== YOUR TEST COMPLETE ===\r\n");
+    printf("\r\n=== TEST COMPLETE ===\r\n");
 }

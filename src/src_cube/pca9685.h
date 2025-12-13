@@ -31,7 +31,6 @@ extern "C" {
 #define PCA9685_SUB3            0x02
 #define PCA9685_ALLCALL         0x01
 
-// Servo pulse parameters (adjust these for your servo)
 #define SERVO_MIN_PULSE  125  //125 // Minimum pulse length (0 degrees)
 #define SERVO_MAX_PULSE  500  //500 // Maximum pulse length (180 degrees)
 
@@ -41,7 +40,6 @@ typedef struct {
     float frequency;
 } PCA9685_HandleTypeDef;
 
-// Function prototypes
 bool PCA9685_Init(PCA9685_HandleTypeDef *pca, I2C_HandleTypeDef *hi2c, uint8_t address, float freq);
 bool PCA9685_SetPWM(PCA9685_HandleTypeDef *pca, uint8_t channel, uint16_t on, uint16_t off);
 bool PCA9685_SetServoAngle(PCA9685_HandleTypeDef *pca, uint8_t channel, uint8_t angle);

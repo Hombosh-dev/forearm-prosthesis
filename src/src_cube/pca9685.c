@@ -1,6 +1,5 @@
 #include "pca9685.h"
 
-// Private function prototypes
 static bool PCA9685_WriteRegister(PCA9685_HandleTypeDef *pca, uint8_t reg, uint8_t value);
 static bool PCA9685_ReadRegister(PCA9685_HandleTypeDef *pca, uint8_t reg, uint8_t *value);
 
@@ -30,16 +29,6 @@ bool PCA9685_Init(PCA9685_HandleTypeDef *pca, I2C_HandleTypeDef *hi2c, uint8_t a
     if (!PCA9685_Sleep(pca, false)) {
         return false;
     }
-    
-    // HAL_Delay(5);
-    // uint8_t mode1;
-    // if (!PCA9685_ReadRegister(pca, PCA9685_MODE1_REG, &mode1)) {
-    //     return false;
-    // }
-    // mode1 |= PCA9685_RESTART;
-    // if (!PCA9685_WriteRegister(pca, PCA9685_MODE1_REG, mode1)) {
-    //     return false;
-    // }
 
     HAL_Delay(1);
     
@@ -92,11 +81,10 @@ bool PCA9685_Sleep(PCA9685_HandleTypeDef *pca, bool sleep) {
 }
 
 bool PCA9685_Reset(PCA9685_HandleTypeDef *pca) {
-    // Software reset - write 0x06 to mode1 register (not the standard I2C general call)
+    // Software reset - write 0x06 to mode1 register
     return PCA9685_WriteRegister(pca, PCA9685_MODE1_REG, 0x06);
 }
 
-// Private functions
 static bool PCA9685_WriteRegister(PCA9685_HandleTypeDef *pca, uint8_t reg, uint8_t value) {
     if (HAL_I2C_Mem_Write(pca->hi2c, pca->address, reg, I2C_MEMADD_SIZE_8BIT, &value, 1, 100) != HAL_OK) {
         return false;
@@ -111,7 +99,6 @@ static bool PCA9685_ReadRegister(PCA9685_HandleTypeDef *pca, uint8_t reg, uint8_
     return true;
 }
 
-// Add to pca9685.c
 bool PCA9685_SetServoPulse(PCA9685_HandleTypeDef *pca, uint8_t channel, uint16_t pulse_us) {
     // Convert microseconds to 12-bit PWM value
     // PCA9685 resolution: 4096 steps @ 50Hz = 20ms period

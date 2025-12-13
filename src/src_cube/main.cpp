@@ -17,7 +17,6 @@
 
 volatile bool data_rdy_f = false;
 // uint16_t adc_buffer[ADC_CHANNELS * SAMPLES] = { 0 };
-// memory alignment for DMA
 __attribute__((aligned(4))) uint16_t adc_buffer[ADC_CHANNELS * SAMPLES] = {0};
 PCA9685_HandleTypeDef pca9685;
 
@@ -54,12 +53,14 @@ int main(void)
     MX_DMA_Init();
     MX_ADC1_Init();
     MX_I2C1_Init();
-    EMG_Control_Init();
 
     printf("=== 3-CHANNEL DMA SENSOR PLOTTER ===\r\n");
     printf("Channels: PA0, PA1, PA2\r\n");
     printf("Sample Rate: ~100 kHz per channel\r\n");
     printf("Total Samples: %d\r\n\r\n", ADC_CHANNELS * SAMPLES);
+
+    EMG_Control_Init();
+    EMG_AutoCalibrate();
 
     printf("=== I2C DEVICE SCAN ===\r\n");
 
@@ -92,24 +93,7 @@ int main(void)
         }
     }
 
-    // // ADC Calibration
-    // #ifdef HAL_ADC_MODULE_ENABLED
-    // printf("Calibrating ADC...\r\n");
-    // if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) {
-    //     printf("ADC calibration failed or not supported!\r\n");
-    // } else {
-    //     printf("ADC calibration successful\r\n");
-    // }
-    // #endif printf("Calibrating ADC...\r\n");
-    // if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) {
-    //     printf("ADC calibration failed!\r\n");
-    // } else {
-    //     printf("ADC calibration successful\r\n");
-    // }
-
-    // HAL_Delay(100);
-
-    // Clear buffer before starting
+    // clear buffer before starting
     for (int i = 0; i < ADC_CHANNELS * SAMPLES; i++) {
         adc_buffer[i] = 0;
     }
@@ -125,11 +109,9 @@ int main(void)
         HAL_Delay(1);
     }
 
-    // Restart ADC for continuous operation
+    // restart ADC for continuous operation
     HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS * SAMPLES);
 
-    uint32_t last_process_time = 0;
-    uint32_t current_time;
     while (1)
     {
         if (data_rdy_f)
@@ -138,16 +120,12 @@ int main(void)
             data_rdy_f = false;
         }
         
-        // === MINIMAL CHANGE: ADD RAW DATA DEBUG OUTPUT ===
         static uint32_t last_raw_print = 0;
         uint32_t current_time = HAL_GetTick();
         
-        // Print raw data every 100ms (10Hz) to avoid flooding serial
         if (current_time - last_raw_print >= 100) {
-            // Get the latest sample index
             int last_sample_index = (SAMPLES - 1) * ADC_CHANNELS;
             
-            // Print in your specified format
             printf(">CH1:%d,CH2:%d,CH3:%d\r\n", 
                    adc_buffer[last_sample_index + 0],  // CH1 (PA0)
                    adc_buffer[last_sample_index + 1],  // CH2 (PA1) 
@@ -155,26 +133,7 @@ int main(void)
             
             last_raw_print = current_time;
         }
-        // current_time = HAL_GetTick();
         
-        // // Process EMG every 50ms (20Hz) instead of immediately
-        // if (data_rdy_f && (current_time - last_process_time >= 50))
-        // {
-        //     // EMG_Control_Process();
-        //     last_process_time = current_time;
-        //     data_rdy_f = false;
-        // }
-        // HAL_Delay(1);
-
-        // static uint32_t last_print = 0;
-        // if (HAL_GetTick() - last_print > 100) {
-        //     int idx = (SAMPLES - 1) * ADC_CHANNELS;
-        //     printf("RAW: %d, %d, %d\r\n", 
-        //         adc_buffer[idx], 
-        //         adc_buffer[idx+1], 
-        //         adc_buffer[idx+2]);
-        //     last_print = HAL_GetTick();
-        // }
     }
 }
 
@@ -184,15 +143,15 @@ void TestServo(void) {
     printf("\r\n=== SERVO TEST ===\r\n");  // primary open okay, half okay, closed
     
     printf("Open hand (0 degrees)...\r\n");
-    SetServo1Angle(0);     // 0 OPEN  | 90 half  | 150 closed   -------- ??? bad open (too small), bad closed (too weak) fixed
+    SetServo1Angle(0);     // 0 OPEN  | 90 half  | 150 closed 
     HAL_Delay(100);
-    SetServo2Angle(0);     // 0 open  | 120 half | 180 closed  ----------!!!!! also exellent
+    SetServo2Angle(0);     // 0 open  | 120 half | 180 closed 
     HAL_Delay(100);
-    SetServo3Angle(10);    // 10 open | 120 half | 170 closed  ----------!!!!! the best
+    SetServo3Angle(10);    // 10 open | 120 half | 170 closed  
     HAL_Delay(100);
-    SetServo4Angle(20);    // 20 open | 130 half | 180 closed ----------- 200 closed better (maybe tighten)
+    SetServo4Angle(20);    // 20 open | 130 half | 180 closed
     HAL_Delay(100);
-    SetServo5Angle(0);     // 0 OPEN  | 90 half  | 120 closed (better -20) --------
+    SetServo5Angle(0);     // 0 OPEN  | 90 half  | 120 closed
     HAL_Delay(2000);
 
     printf("Half fist (90 degrees)...\r\n");
@@ -225,27 +184,6 @@ void TestServo(void) {
     SetServo3Angle(10);
     SetServo4Angle(50);
     SetServo5Angle(0);
-    
-    // printf("\r\n=== SERVO TEST COMPLETE ===\r\n");
-
-    // printf("\r\n=== SERVO TEST ===\r\n");
-    
-    // printf("Open hand (0 degrees)...\r\n");
-    // OpenHand();
-    // HAL_Delay(2000);
-
-    // printf("Half grip...\r\n");
-    // SetAllServosNormalized(90);
-    // HAL_Delay(2000);
-    
-    // printf("Full fist (180 degrees)...\r\n");
-    // CloseHand();
-    // HAL_Delay(2000);
-    
-    // printf("Return to open hand...\r\n");
-    // OpenHand();
-    
-    // printf("\r\n=== SERVO TEST COMPLETE ===\r\n");
 }
 
 void TestIndividualFingers(void) {
