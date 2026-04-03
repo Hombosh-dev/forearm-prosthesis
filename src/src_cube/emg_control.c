@@ -191,10 +191,10 @@ void EMG_AutoCalibrate(void) {
         channels[1].threshold = channels[1].baseline + 250;
         channels[2].threshold = channels[2].baseline + 350;
         
-        printf("Calibrated: C=%d(+%d), T=%d(+%d), O=%d(+%d)\r\n",
-               channels[0].baseline, channels[0].threshold - channels[0].baseline,
-               channels[1].baseline, channels[1].threshold - channels[1].baseline,
-               channels[2].baseline, channels[2].threshold - channels[2].baseline);
+        // printf("Calibrated: C=%d(+%d), T=%d(+%d), O=%d(+%d)\r\n",
+        //        channels[0].baseline, channels[0].threshold - channels[0].baseline,
+        //        channels[1].baseline, channels[1].threshold - channels[1].baseline,
+        //        channels[2].baseline, channels[2].threshold - channels[2].baseline);
     }
 }
 
@@ -366,36 +366,36 @@ void EMG_Control_Process(void) {
     servo_states[3].current_angle = servo_states[3].target_angle;
     servo_states[4].current_angle = servo_states[4].target_angle;
     
-    if (now - last_print >= 100) {  // every 100ms
-        printf(">CH1:%d,CH2:%d,CH3:%d\r\n",
-               adc_buffer[last_idx + CH_CLOSE],
-               adc_buffer[last_idx + CH_THUMB],
-               adc_buffer[last_idx + CH_OPEN]);
+    // if (now - last_print >= 100) {  // every 100ms
+    //     printf(">CH1:%d,CH2:%d,CH3:%d\r\n",
+    //            adc_buffer[last_idx + CH_CLOSE],
+    //            adc_buffer[last_idx + CH_THUMB],
+    //            adc_buffer[last_idx + CH_OPEN]);
         
-        printf("EMG_FILT: C=%d(%c) T=%d(%c) O=%d(%c) | ",
-               channels[0].filtered, channels[0].activated ? 'A' : 'I',
-               channels[1].filtered, channels[1].activated ? 'A' : 'I',
-               channels[2].filtered, channels[2].activated ? 'A' : 'I');
+    //     printf("EMG_FILT: C=%d(%c) T=%d(%c) O=%d(%c) | ",
+    //            channels[0].filtered, channels[0].activated ? 'A' : 'I',
+    //            channels[1].filtered, channels[1].activated ? 'A' : 'I',
+    //            channels[2].filtered, channels[2].activated ? 'A' : 'I');
         
-        printf("ANGLES: S1=%d S2=%d S3=%d S4=%d S5=%d | ",
-               servo_states[0].current_angle,
-               servo_states[1].current_angle,
-               servo_states[2].current_angle,
-               servo_states[3].current_angle,
-               servo_states[4].current_angle);
+    //     printf("ANGLES: S1=%d S2=%d S3=%d S4=%d S5=%d | ",
+    //            servo_states[0].current_angle,
+    //            servo_states[1].current_angle,
+    //            servo_states[2].current_angle,
+    //            servo_states[3].current_angle,
+    //            servo_states[4].current_angle);
         
-        printf("STATE=");
-        switch(current_state) {
-            case STATE_CLOSE: printf("CLOSE"); break;
-            case STATE_OPEN: printf("OPEN"); break;
-            case STATE_THUMB: printf("THUMB"); break;
-            default: printf("IDLE"); break;
-        }
+    //     printf("STATE=");
+    //     switch(current_state) {
+    //         case STATE_CLOSE: printf("CLOSE"); break;
+    //         case STATE_OPEN: printf("OPEN"); break;
+    //         case STATE_THUMB: printf("THUMB"); break;
+    //         default: printf("IDLE"); break;
+    //     }
         
-        printf(" TH=%d\r\n", TH_CLOSE_BASE);
+    //     printf(" TH=%d-\r\n", TH_CLOSE_BASE);
         
-        last_print = now;
-    }
+    //     last_print = now;
+    // }
     
     data_rdy_f = false;
 }

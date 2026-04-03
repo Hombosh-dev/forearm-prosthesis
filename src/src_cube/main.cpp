@@ -60,7 +60,7 @@ int main(void)
     printf("Total Samples: %d\r\n\r\n", ADC_CHANNELS * SAMPLES);
 
     EMG_Control_Init();
-    EMG_AutoCalibrate();
+    // EMG_AutoCalibrate();
 
     printf("=== I2C DEVICE SCAN ===\r\n");
 
@@ -74,7 +74,7 @@ int main(void)
     if (PCA9685_Init(&pca9685, &hi2c1, PCA9685_I2C_ADDRESS, 50.0))
     {
         printf("PCA9685 initialized successfully\r\n");
-        // TestServo();
+        TestServo();
     }
     else
     {
@@ -87,7 +87,7 @@ int main(void)
             if (PCA9685_Init(&pca9685, &hi2c1, alt_addresses[i], 50.0))
             {
                 printf("PCA9685 found at 0x%02X and initialized!\r\n", alt_addresses[i]);
-                // TestServo();
+                TestServo();
                 break;
             }
         }
@@ -114,11 +114,11 @@ int main(void)
 
     while (1)
     {
-        if (data_rdy_f)
-        {
-            EMG_Control_Process();
-            data_rdy_f = false;
-        }
+        // if (data_rdy_f)
+        // {
+        //     EMG_Control_Process();
+        //     data_rdy_f = false;
+        // }
         
         static uint32_t last_raw_print = 0;
         uint32_t current_time = HAL_GetTick();
@@ -126,10 +126,10 @@ int main(void)
         if (current_time - last_raw_print >= 100) {
             int last_sample_index = (SAMPLES - 1) * ADC_CHANNELS;
             
-            printf(">CH1:%d,CH2:%d,CH3:%d\r\n", 
-                   adc_buffer[last_sample_index + 0],  // CH1 (PA0)
-                   adc_buffer[last_sample_index + 1],  // CH2 (PA1) 
-                   adc_buffer[last_sample_index + 2]); // CH3 (PA2)
+            // printf(">CH1:%d,CH2:%d,CH3:%d\r\n", 
+            //        adc_buffer[last_sample_index + 0],  // CH1 (PA0)
+            //        adc_buffer[last_sample_index + 1],  // CH2 (PA1) 
+            //        adc_buffer[last_sample_index + 2]); // CH3 (PA2)
             
             last_raw_print = current_time;
         }
@@ -145,19 +145,19 @@ void TestServo(void) {
     printf("Open hand (0 degrees)...\r\n");
     SetServo1Angle(0);     // 0 OPEN  | 90 half  | 150 closed 
     HAL_Delay(100);
-    SetServo2Angle(0);     // 0 open  | 120 half | 180 closed 
+    SetServo2Angle(10);     // 0 open  | 120 half | 180 closed 
     HAL_Delay(100);
     SetServo3Angle(10);    // 10 open | 120 half | 170 closed  
     HAL_Delay(100);
-    SetServo4Angle(20);    // 20 open | 130 half | 180 closed
+    SetServo4Angle(80);    // 20 open | 130 half | 180 closed
     HAL_Delay(100);
-    SetServo5Angle(0);     // 0 OPEN  | 90 half  | 120 closed
+    SetServo5Angle(10);     // 0 OPEN  | 90 half  | 120 closed
     HAL_Delay(2000);
 
     printf("Half fist (90 degrees)...\r\n");
     SetServo1Angle(120); 
     HAL_Delay(100);
-    SetServo2Angle(120);
+    SetServo2Angle(180);
     HAL_Delay(100);
     SetServo3Angle(110); 
     HAL_Delay(100);
@@ -165,13 +165,21 @@ void TestServo(void) {
     HAL_Delay(100);
     SetServo5Angle(130);
     HAL_Delay(2000);
+
+    printf("Return to open hand...\r\n");
+    SetServo1Angle(0);
+    SetServo2Angle(10);
+    SetServo3Angle(10);
+    SetServo4Angle(80);
+    SetServo5Angle(10);
+    HAL_Delay(2000);
     
     printf("Full fist (180 degrees)...\r\n");
     SetServo1Angle(180);
     HAL_Delay(100);
     SetServo2Angle(180);
     HAL_Delay(100);
-    SetServo3Angle(150);
+    SetServo3Angle(130);
     HAL_Delay(100);
     SetServo4Angle(180);
     HAL_Delay(100);
@@ -180,10 +188,10 @@ void TestServo(void) {
     
     printf("Return to open hand...\r\n");
     SetServo1Angle(0);
-    SetServo2Angle(0);
+    SetServo2Angle(10);
     SetServo3Angle(10);
-    SetServo4Angle(50);
-    SetServo5Angle(0);
+    SetServo4Angle(80);
+    SetServo5Angle(10);
 }
 
 void TestIndividualFingers(void) {
